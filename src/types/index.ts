@@ -56,6 +56,7 @@ export interface Application {
   fisEntered: boolean;
   fisEntryDate?: Date;
   processingTimeWeeks?: number;
+  primaryAppointmentEndDate?: Date; // Admin-only field
 }
 
 export interface StatusHistoryItem {

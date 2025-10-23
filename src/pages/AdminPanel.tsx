@@ -15,7 +15,7 @@ import {
   Search,
   ArrowUpDown
 } from 'lucide-react';
-import { College, ContactInfo, Application, ApplicationStatus } from '../types';
+import { College, ContactInfo, Application, ApplicationStatus, FacultyMember } from '../types';
 import { mockApplications, generateMockApplications } from '../utils/mockData';
 
 interface TabProps {
@@ -140,6 +140,280 @@ const ApplicationProgress: React.FC<{ status: ApplicationStatus }> = ({ status }
   );
 };
 
+// Application edit modal for admin use
+const ApplicationEditModal: React.FC<{
+  application: Application;
+  onClose: () => void;
+  onSave: (updatedApplication: Application) => void;
+}> = ({ application, onClose, onSave }) => {
+  const [formData, setFormData] = useState<Application>({
+    ...application,
+    primaryAppointmentEndDate: application.primaryAppointmentEndDate || undefined
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleInputChange = (field: keyof Application, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user makes changes
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleFacultyChange = (field: keyof FacultyMember, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      facultyMember: { ...prev.facultyMember, [field]: value }
+    }));
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.facultyMember.name.trim()) {
+      newErrors['facultyMember.name'] = 'Name is required';
+    }
+    if (!formData.facultyMember.email.trim()) {
+      newErrors['facultyMember.email'] = 'Email is required';
+    } else if (!validateEmail(formData.facultyMember.email)) {
+      newErrors['facultyMember.email'] = 'Invalid email format';
+    }
+    if (!formData.rationale.trim()) {
+      newErrors.rationale = 'Rationale is required';
+    }
+    if (!formData.currentApprover?.trim()) {
+      newErrors.currentApprover = 'Current approver is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const updatedApplication = {
+      ...formData,
+      updatedAt: new Date()
+    };
+
+    onSave(updatedApplication);
+  };
+
+  const statusOptions: { value: ApplicationStatus; label: string }[] = [
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'ccc_review', label: 'CCC Review' },
+    { value: 'faculty_vote', label: 'Faculty Vote' },
+    { value: 'awaiting_primary_approval', label: 'Awaiting Primary Approval' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'fis_entry_pending', label: 'FIS Entry Pending' },
+    { value: 'completed', label: 'Completed' }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-10 mx-auto p-5 border max-w-4xl shadow-lg rounded-md bg-white">
+        <form onSubmit={handleSubmit}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-medium text-gray-900">Edit Application</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {/* Faculty Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-lg font-medium text-gray-900 mb-3">Faculty Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                  <input
+                    type="text"
+                    value={formData.facultyMember.name}
+                    onChange={(e) => handleFacultyChange('name', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                      errors['facultyMember.name'] ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors['facultyMember.name'] && (
+                    <p className="mt-1 text-sm text-red-600">{errors['facultyMember.name']}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={formData.facultyMember.email}
+                    onChange={(e) => handleFacultyChange('email', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                      errors['facultyMember.email'] ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors['facultyMember.email'] && (
+                    <p className="mt-1 text-sm text-red-600">{errors['facultyMember.email']}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={formData.facultyMember.title}
+                    onChange={(e) => handleFacultyChange('title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">College</label>
+                  <input
+                    type="text"
+                    value={formData.facultyMember.college}
+                    onChange={(e) => handleFacultyChange('college', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={formData.facultyMember.department || ''}
+                    onChange={(e) => handleFacultyChange('department', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+                  <select
+                    value={formData.facultyMember.institution}
+                    onChange={(e) => handleFacultyChange('institution', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="vanderbilt">Vanderbilt University</option>
+                    <option value="vumc">Vanderbilt University Medical Center</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Application Status and Details */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-lg font-medium text-gray-900 mb-3">Application Status</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    {statusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Approver</label>
+                  <input
+                    type="text"
+                    value={formData.currentApprover || ''}
+                    onChange={(e) => handleInputChange('currentApprover', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                      errors.currentApprover ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="e.g., Dr. John Smith (Department Chair)"
+                  />
+                  {errors.currentApprover && (
+                    <p className="mt-1 text-sm text-red-600">{errors.currentApprover}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Admin-Only Fields */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="text-lg font-medium text-gray-900 mb-3">Admin-Only Fields</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Primary Appointment End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.primaryAppointmentEndDate ? formData.primaryAppointmentEndDate.toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleInputChange('primaryAppointmentEndDate', e.target.value ? new Date(e.target.value) : undefined)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    This date is only visible to administrators
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">FIS Entered</label>
+                  <select
+                    value={formData.fisEntered.toString()}
+                    onChange={(e) => handleInputChange('fisEntered', e.target.value === 'true')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Rationale */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rationale *</label>
+              <textarea
+                value={formData.rationale}
+                onChange={(e) => handleInputChange('rationale', e.target.value)}
+                rows={4}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.rationale ? 'border-red-300' : 'border-gray-300'
+                }`}
+              />
+              {errors.rationale && (
+                <p className="mt-1 text-sm text-red-600">{errors.rationale}</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 border border-gray-300 bg-primary-600 text-gray-700 text-sm font-medium rounded-md shadow-sm hover:bg-primary-700"
+              >
+                <Save className="inline mr-2 h-4 w-4" />
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // Application details modal
 const ApplicationDetailsModal: React.FC<{
   application: Application;
@@ -216,6 +490,17 @@ const ApplicationDetailsModal: React.FC<{
             </div>
           </div>
 
+          {/* Admin Information */}
+          {application.primaryAppointmentEndDate && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="text-lg font-medium text-gray-900 mb-3">Administrative Information</h4>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Primary Appointment End Date</label>
+                <p className="text-sm text-gray-900">{application.primaryAppointmentEndDate.toLocaleDateString()}</p>
+              </div>
+            </div>
+          )}
+
           {/* Status History */}
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-3">Status History</h4>
@@ -274,6 +559,7 @@ const CurrentApplicationsTab: React.FC = () => {
   const [sortBy, setSortBy] = useState<'submittedAt' | 'updatedAt' | 'status'>('submittedAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [editingApplication, setEditingApplication] = useState<Application | null>(null);
 
   // Initialize applications data
   useEffect(() => {
@@ -373,6 +659,13 @@ const CurrentApplicationsTab: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleSaveApplication = (updatedApplication: Application) => {
+    setApplications(prev => prev.map(app => 
+      app.id === updatedApplication.id ? updatedApplication : app
+    ));
+    setEditingApplication(null);
   };
 
   const statusOptions: { value: ApplicationStatus | 'all'; label: string }[] = [
@@ -510,6 +803,13 @@ const CurrentApplicationsTab: React.FC = () => {
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
+                    onClick={() => setEditingApplication(application)}
+                    className="text-blue-600 hover:text-blue-900"
+                    title="Edit Application"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={() => handleDownloadCV(application)}
                     className="text-green-600 hover:text-green-900"
                     title="Download CV"
@@ -535,6 +835,15 @@ const CurrentApplicationsTab: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Application Edit Modal */}
+      {editingApplication && (
+        <ApplicationEditModal
+          application={editingApplication}
+          onClose={() => setEditingApplication(null)}
+          onSave={handleSaveApplication}
+        />
+      )}
 
       {/* Application Details Modal */}
       {selectedApplication && (
