@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Upload, 
   CheckCircle, 
-  AlertCircle, 
   Info,
   Building2,
   Users,
-  Mail,
   FileText
 } from 'lucide-react';
-import { InstitutionalAffiliation, ApprovalChain, College } from '../types';
+import { InstitutionalAffiliation, College } from '../types';
 
 interface FormData {
   // Faculty Information
@@ -21,8 +19,12 @@ interface FormData {
   institution: InstitutionalAffiliation;
   
   // Application Details
+  appointmentType: 'initial' | 'secondary' | '';
+  effectiveDate: string;
+  duration: '1year' | '2year' | '3year' | '';
   rationale: string;
   cvFile: File | null;
+  
   
   // Approval Chain (for manual entry)
   departmentChairName: string;
@@ -50,6 +52,9 @@ const ApplicationForm: React.FC = () => {
     department: '',
     college: '',
     institution: 'vanderbilt',
+    appointmentType: '',
+    effectiveDate: '',
+    duration: '',
     rationale: '',
     cvFile: null,
     departmentChairName: '',
@@ -68,6 +73,7 @@ const ApplicationForm: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [approvalChainLoaded, setApprovalChainLoaded] = useState(false);
 
+
   // Mock college data - in real app, this would come from API
   const colleges: College[] = [
     {
@@ -78,18 +84,24 @@ const ApplicationForm: React.FC = () => {
     },
     {
       id: '2',
+      name: 'College of Arts & Science',
+      hasDepartments: true,
+      dean: { name: 'Dr. John Geer', email: 'john.geer@vanderbilt.edu', title: 'Dean' }
+    },
+    {
+      id: '3',
       name: 'School of Medicine',
       hasDepartments: true,
       dean: { name: 'Dr. Jennifer Davis', email: 'jennifer.davis@vumc.org', title: 'Dean' }
     },
     {
-      id: '3',
+      id: '4',
       name: 'Owen Graduate School of Management',
       hasDepartments: false,
       dean: { name: 'Dr. Eric Johnson', email: 'eric.johnson@vanderbilt.edu', title: 'Dean' }
     },
     {
-      id: '4',
+      id: '5',
       name: 'Blair School of Music',
       hasDepartments: false,
       dean: { name: 'Dr. Mark Wait', email: 'mark.wait@vanderbilt.edu', title: 'Dean' }
@@ -112,7 +124,9 @@ const ApplicationForm: React.FC = () => {
           ...prev,
           collegeHasDepartments: selectedCollege.hasDepartments,
           deanName: selectedCollege.dean.name,
-          deanEmail: selectedCollege.dean.email
+          deanEmail: selectedCollege.dean.email,
+          // Clear department if college doesn't have departments or isn't Engineering/Arts & Science
+          department: (selectedCollege.name === 'School of Engineering' || selectedCollege.name === 'College of Arts & Science') ? prev.department : ''
         }));
         setApprovalChainLoaded(true);
       }
@@ -135,10 +149,20 @@ const ApplicationForm: React.FC = () => {
       newErrors.email = 'Must be a valid Vanderbilt (@vanderbilt.edu) or VUMC (@vumc.org) email';
     }
     if (!formData.title.trim()) newErrors.title = 'Title is required';
-    if (!formData.department.trim()) newErrors.department = 'Department is required';
+    
+    // Department is only required for Engineering and Arts & Science
+    const requiresDepartment = formData.college === 'School of Engineering' || formData.college === 'College of Arts & Science';
+    if (requiresDepartment && !formData.department.trim()) {
+      newErrors.department = 'Department is required';
+    }
+    
     if (!formData.college.trim()) newErrors.college = 'College is required';
+    if (!formData.appointmentType.trim()) newErrors.appointmentType = 'Appointment type is required';
+    if (!formData.effectiveDate.trim()) newErrors.effectiveDate = 'Effective date is required';
+    if (!formData.duration.trim()) newErrors.duration = 'Duration is required';
     if (!formData.rationale.trim()) newErrors.rationale = 'Rationale is required';
     if (!formData.cvFile) newErrors.cvFile = 'CV is required';
+
 
     // Approval chain validation
     if (formData.collegeHasDepartments) {
@@ -181,6 +205,9 @@ const ApplicationForm: React.FC = () => {
         department: '',
         college: '',
         institution: 'vanderbilt',
+        appointmentType: '',
+        effectiveDate: '',
+        duration: '',
         rationale: '',
         cvFile: null,
         departmentChairName: '',
@@ -318,22 +345,6 @@ const ApplicationForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Primary Department *
-              </label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={(e) => handleInputChange('department', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.department ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Computer Science, Biomedical Engineering, etc."
-              />
-              {errors.department && <p className="mt-1 text-sm text-red-600">{errors.department}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Primary College *
               </label>
               <select
@@ -351,6 +362,87 @@ const ApplicationForm: React.FC = () => {
                 ))}
               </select>
               {errors.college && <p className="mt-1 text-sm text-red-600">{errors.college}</p>}
+            </div>
+
+            {/* Department field - only show for Engineering and Arts & Science */}
+            {(formData.college === 'School of Engineering' || formData.college === 'College of Arts & Science') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Primary Department *
+                </label>
+                <input
+                  type="text"
+                  value={formData.department}
+                  onChange={(e) => handleInputChange('department', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                    errors.department ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Computer Science, Biomedical Engineering, etc."
+                />
+                {errors.department && <p className="mt-1 text-sm text-red-600">{errors.department}</p>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Appointment Details Section */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center mb-4">
+            <Building2 className="h-5 w-5 text-primary-600 mr-2" />
+            <h3 className="text-lg font-medium text-gray-900">Appointment Details</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Appointment Type *
+              </label>
+              <select
+                value={formData.appointmentType}
+                onChange={(e) => handleInputChange('appointmentType', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.appointmentType ? 'border-red-300' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Select Type</option>
+                <option value="initial">Initial Appointment</option>
+                <option value="secondary">Secondary Reappointment</option>
+              </select>
+              {errors.appointmentType && <p className="mt-1 text-sm text-red-600">{errors.appointmentType}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Effective Date *
+              </label>
+              <input
+                type="date"
+                value={formData.effectiveDate}
+                onChange={(e) => handleInputChange('effectiveDate', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.effectiveDate ? 'border-red-300' : 'border-gray-300'
+                }`}
+              />
+              {errors.effectiveDate && <p className="mt-1 text-sm text-red-600">{errors.effectiveDate}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Duration *
+              </label>
+              <select
+                value={formData.duration}
+                onChange={(e) => handleInputChange('duration', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.duration ? 'border-red-300' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Select Duration</option>
+                <option value="1year">1 Year</option>
+                <option value="2year">2 Years</option>
+                <option value="3year">3 Years</option>
+              </select>
+              {errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration}</p>}
             </div>
           </div>
         </div>

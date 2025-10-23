@@ -11,6 +11,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@types/react-router-dom": "^5.3.3",
+    "ajv-keywords": "^5.1.0",
     "lucide-react": "^0.545.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -47,6 +48,7 @@
   "devDependencies": {
     "@craco/craco": "^7.1.0",
     "@types/node": "^24.7.2",
+    "ajv": "^7.2.4",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18"
