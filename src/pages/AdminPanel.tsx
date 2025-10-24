@@ -15,8 +15,9 @@ import {
   Search,
   ArrowUpDown
 } from 'lucide-react';
-import { College, ContactInfo, Application, ApplicationStatus, FacultyMember } from '../types';
+import { College, Application, ApplicationStatus, FacultyMember } from '../types';
 import { mockApplications, generateMockApplications } from '../utils/mockData';
+import { applicationApi } from '../utils/api';
 
 interface TabProps {
   activeTab: string;
@@ -496,7 +497,11 @@ const ApplicationDetailsModal: React.FC<{
               <h4 className="text-lg font-medium text-gray-900 mb-3">Administrative Information</h4>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Primary Appointment End Date</label>
-                <p className="text-sm text-gray-900">{application.primaryAppointmentEndDate.toLocaleDateString()}</p>
+                <p className="text-sm text-gray-900">
+                  {application.primaryAppointmentEndDate instanceof Date 
+                    ? application.primaryAppointmentEndDate.toLocaleDateString() 
+                    : new Date(application.primaryAppointmentEndDate).toLocaleDateString()}
+                </p>
               </div>
             </div>
           )}
@@ -520,7 +525,9 @@ const ApplicationDetailsModal: React.FC<{
                       )}
                     </div>
                     <span className="text-xs text-gray-500">
-                      {history.timestamp.toLocaleString()}
+                      {history.timestamp instanceof Date 
+                        ? history.timestamp.toLocaleString() 
+                        : new Date(history.timestamp).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -561,11 +568,31 @@ const CurrentApplicationsTab: React.FC = () => {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
 
-  // Initialize applications data
+  // Initialize applications data from API
   useEffect(() => {
-    // Combine mock applications with generated ones for demonstration
-    const allApplications = [...mockApplications, ...generateMockApplications(20)];
-    setApplications(allApplications);
+    const fetchApplications = async () => {
+      try {
+        const response = await applicationApi.getAll();
+        // Convert date strings to Date objects
+        const applicationsWithDates = response.data.map(app => ({
+          ...app,
+          submittedAt: new Date(app.submittedAt),
+          updatedAt: new Date(app.updatedAt),
+          statusHistory: app.statusHistory?.map((item: any) => ({
+            ...item,
+            timestamp: new Date(item.timestamp)
+          })) || []
+        }));
+        setApplications(applicationsWithDates);
+      } catch (error) {
+        console.error('Failed to fetch applications:', error);
+        // Fallback to mock data if API fails
+        const allApplications = [...mockApplications, ...generateMockApplications(20)];
+        setApplications(allApplications);
+      }
+    };
+
+    fetchApplications();
   }, []);
 
   // Filter and sort applications
@@ -593,20 +620,20 @@ const CurrentApplicationsTab: React.FC = () => {
       
       switch (sortBy) {
         case 'submittedAt':
-          aValue = a.submittedAt.getTime();
-          bValue = b.submittedAt.getTime();
+          aValue = a.submittedAt instanceof Date ? a.submittedAt.getTime() : new Date(a.submittedAt).getTime();
+          bValue = b.submittedAt instanceof Date ? b.submittedAt.getTime() : new Date(b.submittedAt).getTime();
           break;
         case 'updatedAt':
-          aValue = a.updatedAt.getTime();
-          bValue = b.updatedAt.getTime();
+          aValue = a.updatedAt instanceof Date ? a.updatedAt.getTime() : new Date(a.updatedAt).getTime();
+          bValue = b.updatedAt instanceof Date ? b.updatedAt.getTime() : new Date(b.updatedAt).getTime();
           break;
         case 'status':
           aValue = a.status;
           bValue = b.status;
           break;
         default:
-          aValue = a.submittedAt.getTime();
-          bValue = b.submittedAt.getTime();
+          aValue = a.submittedAt instanceof Date ? a.submittedAt.getTime() : new Date(a.submittedAt).getTime();
+          bValue = b.submittedAt instanceof Date ? b.submittedAt.getTime() : new Date(b.submittedAt).getTime();
       }
 
       if (sortOrder === 'desc') {
@@ -789,10 +816,14 @@ const CurrentApplicationsTab: React.FC = () => {
                   {getStatusBadge(application.status)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {application.submittedAt.toLocaleDateString()}
+                  {application.submittedAt instanceof Date 
+                    ? application.submittedAt.toLocaleDateString() 
+                    : new Date(application.submittedAt).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {application.updatedAt.toLocaleDateString()}
+                  {application.updatedAt instanceof Date 
+                    ? application.updatedAt.toLocaleDateString() 
+                    : new Date(application.updatedAt).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <button

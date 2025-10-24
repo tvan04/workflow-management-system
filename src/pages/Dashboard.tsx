@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Application, ApplicationStatus as AppStatus, DashboardMetrics } from '../types';
+import { applicationApi, analyticsApi } from '../utils/api';
 
 interface MetricCardProps {
   title: string;
@@ -134,79 +135,52 @@ const Dashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [selectedTimeFrame, setSelectedTimeFrame] = useState<'week' | 'month' | 'quarter'>('month');
 
-  // Mock data for demonstration
+  // Load real data from API
   useEffect(() => {
-    const mockApplications: Application[] = [
-      {
-        id: '1',
-        facultyMember: {
-          id: '1',
-          name: 'Dr. Sarah Johnson',
-          email: 'sarah.johnson@vanderbilt.edu',
-          department: 'Computer Science',
-          college: 'Engineering',
-          institution: 'vanderbilt',
-          title: 'Associate Professor'
-        },
-        approvalChain: {
-          departmentChair: { name: 'Dr. Robert Chen', email: 'robert.chen@vanderbilt.edu' },
-          dean: { name: 'Dr. Patricia Williams', email: 'patricia.williams@vanderbilt.edu' },
-          hasDepartments: true
-        },
-        status: 'awaiting_primary_approval',
-        submittedAt: new Date('2024-10-01'),
-        updatedAt: new Date('2024-10-05'),
-        rationale: 'Research collaboration in AI/ML',
-        statusHistory: [],
-        currentApprover: 'Dr. Robert Chen',
-        fisEntered: false
-      },
-      {
-        id: '2',
-        facultyMember: {
-          id: '2',
-          name: 'Dr. Michael Brown',
-          email: 'michael.brown@vumc.org',
-          department: 'Biomedical Informatics',
-          college: 'Medicine',
-          institution: 'vumc',
-          title: 'Professor'
-        },
-        approvalChain: {
-          dean: { name: 'Dr. Jennifer Davis', email: 'jennifer.davis@vumc.org' },
-          hasDepartments: false
-        },
-        status: 'ccc_review',
-        submittedAt: new Date('2024-09-28'),
-        updatedAt: new Date('2024-09-30'),
-        rationale: 'Cross-disciplinary research in healthcare AI',
-        statusHistory: [],
-        fisEntered: false
-      }
-    ];
+    const loadDashboardData = async () => {
+      try {
+        // Load applications and metrics in parallel
+        const [applicationsResponse, metricsResponse] = await Promise.all([
+          applicationApi.getAll(),
+          analyticsApi.getMetrics()
+        ]);
 
-    const mockMetrics: DashboardMetrics = {
-      totalApplications: 47,
-      applicationsByStatus: {
-        'submitted': 8,
-        'ccc_review': 12,
-        'faculty_vote': 0,
-        'awaiting_primary_approval': 15,
-        'approved': 7,
-        'rejected': 2,
-        'fis_entry_pending': 3,
-        'completed': 0
-      },
-      averageProcessingTime: 6.2,
-      stalledApplications: mockApplications.filter(app => {
-        const daysSinceUpdate = Math.floor((new Date().getTime() - new Date(app.updatedAt).getTime()) / (1000 * 3600 * 24));
-        return daysSinceUpdate > 7;
-      }),
-      recentActivity: []
+        const apps = applicationsResponse.data.map((app: any) => ({
+          ...app,
+          submittedAt: new Date(app.submittedAt),
+          updatedAt: new Date(app.updatedAt),
+          statusHistory: app.statusHistory?.map((item: any) => ({
+            ...item,
+            timestamp: new Date(item.timestamp)
+          })) || []
+        }));
+
+        setApplications(apps);
+        setMetrics(metricsResponse.data);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        // Fallback to empty state if API fails
+        setApplications([]);
+        setMetrics({
+          totalApplications: 0,
+          applicationsByStatus: {
+            'submitted': 0,
+            'ccc_review': 0,
+            'faculty_vote': 0,
+            'awaiting_primary_approval': 0,
+            'approved': 0,
+            'rejected': 0,
+            'fis_entry_pending': 0,
+            'completed': 0
+          },
+          averageProcessingTime: 0,
+          stalledApplications: [],
+          recentActivity: []
+        });
+      }
     };
 
-    setApplications(mockApplications);
-    setMetrics(mockMetrics);
+    loadDashboardData();
   }, []);
 
   const progressData = [

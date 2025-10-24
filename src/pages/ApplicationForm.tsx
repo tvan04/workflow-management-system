@@ -8,6 +8,7 @@ import {
   FileText
 } from 'lucide-react';
 import { InstitutionalAffiliation, College } from '../types';
+import { applicationApi } from '../utils/api';
 
 interface FormData {
   // Faculty Information
@@ -194,8 +195,41 @@ const ApplicationForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create FormData for API submission
+      const formDataToSubmit = new FormData();
+      
+      // Add all form fields to FormData
+      formDataToSubmit.append('name', formData.name);
+      formDataToSubmit.append('email', formData.email);
+      formDataToSubmit.append('title', formData.title);
+      formDataToSubmit.append('department', formData.department);
+      formDataToSubmit.append('college', formData.college);
+      formDataToSubmit.append('appointmentType', formData.appointmentType);
+      formDataToSubmit.append('effectiveDate', formData.effectiveDate);
+      formDataToSubmit.append('duration', formData.duration);
+      formDataToSubmit.append('rationale', formData.rationale);
+      
+      // Add approval chain fields
+      formDataToSubmit.append('departmentChairName', formData.departmentChairName);
+      formDataToSubmit.append('departmentChairEmail', formData.departmentChairEmail);
+      formDataToSubmit.append('divisionChairName', formData.divisionChairName);
+      formDataToSubmit.append('divisionChairEmail', formData.divisionChairEmail);
+      formDataToSubmit.append('deanName', formData.deanName);
+      formDataToSubmit.append('deanEmail', formData.deanEmail);
+      formDataToSubmit.append('seniorAssociateDeanName', formData.seniorAssociateDeanName);
+      formDataToSubmit.append('seniorAssociateDeanEmail', formData.seniorAssociateDeanEmail);
+      
+      // Add college departments flag
+      const selectedCollege = colleges.find(c => c.name === formData.college);
+      formDataToSubmit.append('collegeHasDepartments', selectedCollege?.hasDepartments ? 'true' : 'false');
+      
+      // Add CV file
+      if (formData.cvFile) {
+        formDataToSubmit.append('cvFile', formData.cvFile);
+      }
+      
+      // Submit to API
+      await applicationApi.submit(formDataToSubmit);
       
       setSubmitSuccess(true);
       setFormData({
@@ -222,6 +256,8 @@ const ApplicationForm: React.FC = () => {
       });
     } catch (error) {
       console.error('Submission error:', error);
+      // You could add error state here to show user the error
+      alert('Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

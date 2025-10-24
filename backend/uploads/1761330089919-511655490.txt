@@ -1,0 +1,7 @@
+Test CV content for John Doe
+
+Education:
+- PhD Computer Science, University XYZ
+
+Experience:
+- Associate Professor since 2020

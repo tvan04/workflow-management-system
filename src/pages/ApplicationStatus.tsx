@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { 
   CheckCircle, 
   Clock, 
-  AlertCircle, 
   XCircle,
   Search,
   Mail,
@@ -14,6 +13,7 @@ import {
   Download
 } from 'lucide-react';
 import { Application, ApplicationStatus as AppStatus, StatusHistoryItem } from '../types';
+import { applicationApi } from '../utils/api';
 
 interface StatusStepProps {
   label: string;
@@ -107,50 +107,43 @@ const ApplicationLookup: React.FC<ApplicationLookupProps> = ({ onApplicationFoun
     setSearchError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock application data
-      const mockApplication: Application = {
-        id: 'APP-2024-001',
-        facultyMember: {
-          id: '1',
-          name: 'Dr. Sarah Johnson',
-          email: 'sarah.johnson@vanderbilt.edu',
-          department: 'Computer Science',
-          college: 'Engineering',
-          institution: 'vanderbilt',
-          title: 'Associate Professor'
-        },
-        approvalChain: {
-          departmentChair: { name: 'Dr. Robert Chen', email: 'robert.chen@vanderbilt.edu' },
-          dean: { name: 'Dr. Patricia Williams', email: 'patricia.williams@vanderbilt.edu' },
-          hasDepartments: true
-        },
-        status: 'awaiting_primary_approval',
-        submittedAt: new Date('2024-10-01'),
-        updatedAt: new Date('2024-10-05'),
-        rationale: 'Research collaboration in AI/ML with CCC faculty members.',
-        statusHistory: [
-          {
-            status: 'submitted',
-            timestamp: new Date('2024-10-01T09:00:00'),
-            notes: 'Application submitted successfully'
-          },
-          {
-            status: 'ccc_review',
-            timestamp: new Date('2024-10-02T14:30:00'),
-            approver: 'Dr. CCC Dean',
-            notes: 'CV and rationale reviewed, approved for next stage'
-          }
-        ],
-        currentApprover: 'Dr. Robert Chen (Department Chair)',
-        fisEntered: false
-      };
+      let foundApplication: Application | null = null;
 
-      onApplicationFound(mockApplication);
+      // First try to search by application ID if it looks like one
+      if (searchQuery.startsWith('APP-') || searchQuery.match(/^[A-Z]+-\d{4}-[A-Z0-9]+$/)) {
+        try {
+          const response = await applicationApi.getById(searchQuery);
+          foundApplication = response.data;
+        } catch (error) {
+          // If not found by ID, continue to search by email
+        }
+      }
+
+      // If not found by ID or doesn't look like ID, search by query (email/name)
+      if (!foundApplication) {
+        const searchResponse = await applicationApi.search(searchQuery);
+        if (searchResponse.data && searchResponse.data.length > 0) {
+          foundApplication = searchResponse.data[0]; // Use first match
+        }
+      }
+
+      if (foundApplication) {
+        // Convert date strings to Date objects
+        foundApplication.submittedAt = new Date(foundApplication.submittedAt);
+        foundApplication.updatedAt = new Date(foundApplication.updatedAt);
+        if (foundApplication.statusHistory) {
+          foundApplication.statusHistory = foundApplication.statusHistory.map((item: StatusHistoryItem) => ({
+            ...item,
+            timestamp: new Date(item.timestamp)
+          }));
+        }
+        onApplicationFound(foundApplication);
+      } else {
+        setSearchError('Application not found. Please check your application ID or email address.');
+      }
     } catch (error) {
-      setSearchError('Application not found. Please check your application ID or email.');
+      console.error('Search error:', error);
+      setSearchError('Unable to search applications. Please try again later.');
     } finally {
       setIsSearching(false);
     }
@@ -223,14 +216,27 @@ const ApplicationStatus: React.FC = () => {
 
   useEffect(() => {
     if (applicationId) {
-      // Simulate loading application by ID from URL
       const loadApplication = async () => {
         setLoading(true);
         try {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          // Mock application would be loaded here
-          setLoading(false);
+          const response = await applicationApi.getById(applicationId);
+          const app = response.data;
+          
+          // Convert date strings to Date objects
+          app.submittedAt = new Date(app.submittedAt);
+          app.updatedAt = new Date(app.updatedAt);
+          if (app.statusHistory) {
+            app.statusHistory = app.statusHistory.map((item: StatusHistoryItem) => ({
+              ...item,
+              timestamp: new Date(item.timestamp)
+            }));
+          }
+          
+          setApplication(app);
         } catch (error) {
+          console.error('Error loading application:', error);
+          // Application not found or error - will show search form
+        } finally {
           setLoading(false);
         }
       };
@@ -295,9 +301,9 @@ const ApplicationStatus: React.FC = () => {
     return steps;
   };
 
-  const getStepStatus = (stepKey: string, currentStatus: AppStatus, statusHistory: StatusHistoryItem[]) => {
+  const getStepStatus = (stepKey: string, currentStatus: AppStatus, statusHistory: StatusHistoryItem[] | undefined) => {
     // Find if this step has been completed
-    const historyItem = statusHistory.find(item => item.status === stepKey);
+    const historyItem = statusHistory?.find(item => item.status === stepKey);
     
     if (historyItem) {
       return 'completed';
@@ -380,8 +386,8 @@ const ApplicationStatus: React.FC = () => {
         
         <div className="space-y-4">
           {workflowSteps.map((step, index) => {
-            const stepStatus = getStepStatus(step.key, application.status, application.statusHistory);
-            const historyItem = application.statusHistory.find(item => item.status === step.key);
+            const stepStatus = getStepStatus(step.key, application.status, application.statusHistory || []);
+            const historyItem = application.statusHistory?.find(item => item.status === step.key);
             
             return (
               <div key={step.key} className="relative">
