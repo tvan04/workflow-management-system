@@ -4,8 +4,7 @@ import {
   LayoutDashboard,
   FileText,
   Search,
-  Settings,
-  Building2
+  Settings
 } from 'lucide-react';
 
 interface LayoutProps {

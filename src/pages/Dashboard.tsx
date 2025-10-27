@@ -190,10 +190,9 @@ const Dashboard: React.FC = () => {
   ];
 
   const statusDistributionData = metrics ? Object.entries(metrics.applicationsByStatus)
-    .filter(([_, count]) => count > 0)
     .map(([status, count]) => ({
       status: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      count
+      count: count || 0
     })) : [];
 
   if (!metrics) {
@@ -308,29 +307,35 @@ const Dashboard: React.FC = () => {
             <div className="w-3 h-3 bg-vanderbilt-gold-500 rounded-full animate-pulse-soft"></div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={statusDistributionData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" stroke="#E4E4E7" />
-              <XAxis type="number" tick={{ fill: '#71717A' }} />
-              <YAxis dataKey="status" type="category" width={150} tick={{ fill: '#71717A', fontSize: 12 }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  border: 'none', 
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 40px -12px rgba(0, 0, 0, 0.25)'
-                }} 
-              />
-              <Bar 
-                dataKey="count" 
-                fill="url(#colorGradient)" 
-                radius={[0, 8, 8, 0]}
-              />
+            <BarChart data={statusDistributionData}>
               <defs>
-                <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="5%" stopColor="#F2CC0C" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#D97706" stopOpacity={1}/>
+                <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F2CC0C" stopOpacity={1}/>
+                  <stop offset="95%" stopColor="#d99a06ff" stopOpacity={0.8}/>
                 </linearGradient>
               </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E4E4E7" />
+              <XAxis
+                dataKey="status"
+                tick={{ fill: '#71717A', fontSize: 11 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis tick={{ fill: '#71717A' }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 40px -12px rgba(0, 0, 0, 0.25)'
+                }}
+              />
+              <Bar
+                dataKey="count"
+                fill="url(#colorGradient)"
+                radius={[8, 8, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
