@@ -74,10 +74,10 @@ export const applicationApi = {
   },
 
   // Update application status
-  updateStatus: async (id: string, status: string, notes?: string): Promise<ApiResponse<any>> => {
+  updateStatus: async (id: string, status: string, notes?: string, approver?: string): Promise<ApiResponse<any>> => {
     return apiRequest(`/applications/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, notes }),
+      body: JSON.stringify({ status, notes, approver }),
     });
   },
 

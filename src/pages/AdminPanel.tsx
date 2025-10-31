@@ -420,7 +420,67 @@ const ApplicationDetailsModal: React.FC<{
   application: Application;
   onClose: () => void;
   onDownloadCV: (application: Application) => void;
-}> = ({ application, onClose, onDownloadCV }) => {
+  onEdit: (application: Application) => void;
+  onStatusUpdate: (updatedApplication: Application) => void;
+}> = ({ application, onClose, onDownloadCV, onEdit, onStatusUpdate }) => {
+  const [showConfirmApproval, setShowConfirmApproval] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const getNextStatus = (currentStatus: ApplicationStatus): ApplicationStatus | null => {
+    switch (currentStatus) {
+      case 'submitted':
+        return 'ccc_review';
+      case 'ccc_review':
+        return 'faculty_vote';
+      case 'faculty_vote':
+        return 'awaiting_primary_approval';
+      case 'awaiting_primary_approval':
+        return 'approved';
+      case 'approved':
+        return 'fis_entry_pending';
+      case 'fis_entry_pending':
+        return 'completed';
+      case 'completed':
+      case 'rejected':
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  const handleManualApproval = async () => {
+    const nextStatus = getNextStatus(application.status);
+    if (!nextStatus) {
+      alert('Application is already at final status and cannot be advanced further.');
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    try {
+      await applicationApi.updateStatus(
+        application.id,
+        nextStatus,
+        'Manually approved by CCC Admin',
+        'CCC Admin'
+      );
+      
+      // Update the application object with new status
+      const updatedApplication = {
+        ...application,
+        status: nextStatus,
+        updatedAt: new Date()
+      };
+      
+      onStatusUpdate(updatedApplication);
+      setShowConfirmApproval(false);
+      alert('Application status updated successfully!');
+    } catch (error) {
+      console.error('Failed to update application status:', error);
+      alert('Failed to update application status. Please try again.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-5 border max-w-4xl shadow-lg rounded-md bg-white">
@@ -479,6 +539,19 @@ const ApplicationDetailsModal: React.FC<{
                 <p className="text-sm text-blue-800">
                   <strong>Current Approver:</strong> {application.currentApprover}
                 </p>
+              </div>
+            )}
+            
+            {/* Manual Approval Button */}
+            {getNextStatus(application.status) && (
+              <div className="mt-4 ml-10">
+                <button
+                  onClick={() => setShowConfirmApproval(true)}
+                  disabled={isUpdatingStatus}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-red-400 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdatingStatus ? 'Updating...' : 'Approve Current Step Manually'}
+                </button>
               </div>
             )}
           </div>
@@ -545,6 +618,13 @@ const ApplicationDetailsModal: React.FC<{
               Download CV
             </button>
             <button
+              onClick={() => onEdit(application)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </button>
+            <button
               onClick={onClose}
               className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-primary-700"
             >
@@ -553,6 +633,44 @@ const ApplicationDetailsModal: React.FC<{
           </div>
         </div>
       </div>
+      
+      {/* Confirmation Modal */}
+      {showConfirmApproval && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-60">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <AlertTriangle className="mx-auto h-12 w-12 text-red-600" />
+              <h3 className="text-lg font-medium text-gray-900 mt-2">Confirm Manual Approval</h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  Are you sure you want to manually approve this application and advance it to the next step?
+                </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Current Status: <strong>{application.status.replace('_', ' ').toUpperCase()}</strong>
+                  <br />
+                  Next Status: <strong>{getNextStatus(application.status)?.replace('_', ' ').toUpperCase()}</strong>
+                </p>
+              </div>
+              <div className="items-center px-4 py-3 space-x-4">
+                <button
+                  onClick={() => setShowConfirmApproval(false)}
+                  disabled={isUpdatingStatus}
+                  className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-700 disabled:opacity-50"
+                >
+                  No, Cancel
+                </button>
+                <button
+                  onClick={handleManualApproval}
+                  disabled={isUpdatingStatus}
+                  className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isUpdatingStatus ? 'Approving...' : 'Yes, Approve'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -695,6 +813,12 @@ const CurrentApplicationsTab: React.FC = () => {
     setEditingApplication(null);
   };
 
+  const handleStatusUpdate = (updatedApplication: Application) => {
+    setApplications(prev => prev.map(app => 
+      app.id === updatedApplication.id ? updatedApplication : app
+    ));
+  };
+
   const statusOptions: { value: ApplicationStatus | 'all'; label: string }[] = [
     { value: 'all', label: 'All Statuses' },
     { value: 'submitted', label: 'Submitted' },
@@ -834,13 +958,6 @@ const CurrentApplicationsTab: React.FC = () => {
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setEditingApplication(application)}
-                    className="text-blue-600 hover:text-blue-900"
-                    title="Edit Application"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
                     onClick={() => handleDownloadCV(application)}
                     className="text-green-600 hover:text-green-900"
                     title="Download CV"
@@ -882,6 +999,11 @@ const CurrentApplicationsTab: React.FC = () => {
           application={selectedApplication}
           onClose={() => setSelectedApplication(null)}
           onDownloadCV={handleDownloadCV}
+          onEdit={(app) => {
+            setEditingApplication(app);
+            setSelectedApplication(null);
+          }}
+          onStatusUpdate={handleStatusUpdate}
         />
       )}
     </div>
