@@ -1276,10 +1276,7 @@ const CollegesTab: React.FC = () => {
 
 const SystemSettingsTab: React.FC = () => {
   const [settings, setSettings] = useState({
-    reminderInterval: 7,
     processingTargetDays: 14,
-    autoReminders: true,
-    emailNotifications: true,
     fisIntegration: true,
     oracleApiEndpoint: 'https://api.vanderbilt.edu/oracle/org-chart',
     facultyVotingEnabled: false
@@ -1297,28 +1294,13 @@ const SystemSettingsTab: React.FC = () => {
     <div className="max-w-4xl">
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900">System Settings</h3>
-        <p className="text-sm text-gray-600">Configure workflow automation and notification settings</p>
+        <p className="text-sm text-gray-600">Configure workflow automation and system integration settings</p>
       </div>
 
       <div className="space-y-6">
         <div className="bg-white shadow rounded-lg p-6">
           <h4 className="text-md font-medium text-gray-900 mb-4">Workflow Settings</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reminder Interval (days)
-              </label>
-              <input
-                type="number"
-                value={settings.reminderInterval}
-                onChange={(e) => setSettings(prev => ({ ...prev, reminderInterval: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                min="1"
-                max="30"
-              />
-              <p className="mt-1 text-xs text-gray-500">Days before sending stall reminder emails</p>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Processing Target (days)
@@ -1333,35 +1315,6 @@ const SystemSettingsTab: React.FC = () => {
               />
               <p className="mt-1 text-xs text-gray-500">Target processing time for applications</p>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-6">
-          <h4 className="text-md font-medium text-gray-900 mb-4">Notification Settings</h4>
-          <div className="space-y-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={settings.autoReminders}
-                onChange={(e) => setSettings(prev => ({ ...prev, autoReminders: e.target.checked }))}
-                className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                Enable automatic reminder emails
-              </span>
-            </label>
-
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={settings.emailNotifications}
-                onChange={(e) => setSettings(prev => ({ ...prev, emailNotifications: e.target.checked }))}
-                className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                Enable email notifications for status updates
-              </span>
-            </label>
           </div>
         </div>
 

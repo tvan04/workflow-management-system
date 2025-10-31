@@ -6,7 +6,7 @@ const { body, validationResult, query } = require('express-validator');
 
 const Application = require('../models/Application');
 const FacultyMember = require('../models/FacultyMember');
-const NotificationService = require('../services/NotificationService');
+const EmailService = require('../services/EmailService');
 
 const router = express.Router();
 
@@ -228,12 +228,34 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
     // Add faculty member data for response
     application.facultyMember = faculty.toJSON();
 
-    // Send notification to faculty and CCC staff
+    // Send email notifications
     try {
-      await NotificationService.sendApplicationSubmittedNotification(application);
-    } catch (notificationError) {
-      console.error('Failed to send notification:', notificationError);
-      // Don't fail the request if notification fails
+      const emailService = new EmailService();
+      const primaryAppointment = req.body.department 
+        ? `${req.body.department}, ${req.body.college}` 
+        : req.body.college;
+      
+      // Send approval notifications to approvers
+      const approverEmails = emailService.getApproverEmails(applicationData);
+      if (approverEmails.length > 0) {
+        await emailService.sendApprovalNotification(
+          approverEmails,
+          faculty.name,
+          application.id,
+          primaryAppointment
+        );
+      }
+      
+      // Send confirmation email to applicant
+      await emailService.sendConfirmationEmail(
+        faculty.email,
+        faculty.name,
+        application.id,
+        primaryAppointment
+      );
+    } catch (error) {
+      console.error('Email notification failed:', error.message);
+      // Don't fail the application submission if email fails
     }
 
     res.status(201).json({
@@ -279,12 +301,7 @@ router.patch('/:id/status', [
 
     await application.updateStatus(status, approver, notes);
 
-    // Send status change notification
-    try {
-      await NotificationService.sendStatusChangeNotification(application, status);
-    } catch (notificationError) {
-      console.error('Failed to send notification:', notificationError);
-    }
+    // Notification functionality removed
 
     res.json({
       data: application.toJSON(),
@@ -296,26 +313,7 @@ router.patch('/:id/status', [
   }
 });
 
-// POST /api/applications/:id/remind - Send reminder for stalled application
-router.post('/:id/remind', async (req, res) => {
-  try {
-    const application = await Application.findById(req.params.id);
-    if (!application) {
-      return res.status(404).json({ error: 'Application not found' });
-    }
-
-    // Send reminder notification
-    await NotificationService.sendReminderNotification(application);
-
-    res.json({
-      data: { sent: true },
-      message: 'Reminder sent successfully'
-    });
-  } catch (error) {
-    console.error('Error sending reminder:', error);
-    res.status(500).json({ error: 'Failed to send reminder' });
-  }
-});
+// Reminder functionality removed - no longer available
 
 // PUT /api/applications/:id - Update application (admin only)
 router.put('/:id', [

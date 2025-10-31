@@ -1,5 +1,4 @@
 const cron = require('node-cron');
-const NotificationService = require('./NotificationService');
 const Application = require('../models/Application');
 const moment = require('moment');
 
@@ -11,19 +10,7 @@ class SchedulerService {
   start() {
     console.log('Starting scheduler service...');
     
-    // Schedule reminder notifications to run daily at 9 AM
-    const reminderJob = cron.schedule('0 9 * * *', async () => {
-      console.log('Running scheduled reminder check...');
-      try {
-        const count = await NotificationService.sendBulkReminders();
-        console.log(`Sent ${count} reminder notifications`);
-      } catch (error) {
-        console.error('Error in scheduled reminder job:', error);
-      }
-    }, {
-      scheduled: false,
-      timezone: 'America/Chicago' // Central time for Vanderbilt
-    });
+    // Reminder notifications disabled - functionality removed
 
     // Schedule processing time calculation to run daily at midnight
     const processingTimeJob = cron.schedule('0 0 * * *', async () => {
@@ -52,7 +39,6 @@ class SchedulerService {
     });
 
     this.jobs = [
-      { name: 'reminders', job: reminderJob },
       { name: 'processingTimes', job: processingTimeJob },
       { name: 'weeklyMetrics', job: metricsJob }
     ];
@@ -176,13 +162,7 @@ class SchedulerService {
     }
   }
 
-  // Manual trigger methods for testing
-  async triggerReminders() {
-    console.log('Manually triggering reminder notifications...');
-    const count = await NotificationService.sendBulkReminders();
-    console.log(`Sent ${count} reminder notifications`);
-    return count;
-  }
+  // Reminder functionality removed - no longer available
 
   async triggerProcessingTimeUpdate() {
     console.log('Manually triggering processing time updates...');

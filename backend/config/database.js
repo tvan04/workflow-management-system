@@ -126,32 +126,7 @@ class Database {
         FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
       )`,
 
-      // Notification templates table
-      `CREATE TABLE IF NOT EXISTS notification_templates (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL UNIQUE,
-        subject TEXT NOT NULL,
-        body_text TEXT NOT NULL,
-        body_html TEXT,
-        type TEXT NOT NULL CHECK (type IN ('status_change', 'reminder', 'approval_request')),
-        recipient_role TEXT NOT NULL CHECK (recipient_role IN ('faculty', 'chair', 'dean', 'ccc_staff')),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`,
-
-      // Notifications log table
-      `CREATE TABLE IF NOT EXISTS notifications_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        application_id TEXT,
-        template_id TEXT,
-        recipient_email TEXT NOT NULL,
-        subject TEXT NOT NULL,
-        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        status TEXT NOT NULL CHECK (status IN ('sent', 'failed', 'pending')),
-        error_message TEXT,
-        FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE SET NULL,
-        FOREIGN KEY (template_id) REFERENCES notification_templates (id) ON DELETE SET NULL
-      )`,
+      // Notification functionality removed
 
       // System settings table
       `CREATE TABLE IF NOT EXISTS system_settings (
@@ -185,7 +160,7 @@ class Database {
       'CREATE INDEX IF NOT EXISTS idx_applications_submitted_at ON applications(submitted_at)',
       'CREATE INDEX IF NOT EXISTS idx_applications_faculty_member ON applications(faculty_member_id)',
       'CREATE INDEX IF NOT EXISTS idx_status_history_application ON status_history(application_id)',
-      'CREATE INDEX IF NOT EXISTS idx_notifications_application ON notifications_log(application_id)',
+      // Notification indexes removed
       'CREATE INDEX IF NOT EXISTS idx_faculty_email ON faculty_members(email)',
       'CREATE INDEX IF NOT EXISTS idx_departments_college ON departments(college_id)'
     ];

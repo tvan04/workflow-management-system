@@ -179,9 +179,9 @@ const ApplicationForm: React.FC = () => {
 
     if (!formData.deanName.trim()) newErrors.deanName = 'Dean name is required';
     if (!formData.deanEmail.trim()) newErrors.deanEmail = 'Dean email is required';
-    else if (!validateEmail(formData.deanEmail)) {
-      newErrors.deanEmail = 'Must be a valid Vanderbilt or VUMC email';
-    }
+    // else if (!validateEmail(formData.deanEmail)) {
+    //   newErrors.deanEmail = 'Must be a valid Vanderbilt or VUMC email';
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -293,7 +293,6 @@ const ApplicationForm: React.FC = () => {
             Your secondary appointment application has been submitted and is now in the CCC review queue.
           </p>
           <p className="text-sm text-green-600">
-            You will receive email notifications as your application progresses through the approval process.
             You can track your application status using the Status page.
           </p>
         </div>

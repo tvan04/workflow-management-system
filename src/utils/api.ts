@@ -81,12 +81,7 @@ export const applicationApi = {
     });
   },
 
-  // Send reminder emails
-  sendReminder: async (id: string): Promise<ApiResponse<{ sent: boolean }>> => {
-    return apiRequest(`/applications/${id}/remind`, {
-      method: 'POST',
-    });
-  },
+  // Reminder functionality removed
 };
 
 // College and organizational data API
@@ -156,28 +151,6 @@ export const settingsApi = {
   },
 };
 
-// Notification API
-export const notificationApi = {
-  // Send manual notification
-  sendNotification: async (applicationId: string, type: string, recipients: string[]): Promise<ApiResponse<{ sent: boolean }>> => {
-    return apiRequest('/notifications/send', {
-      method: 'POST',
-      body: JSON.stringify({ applicationId, type, recipients }),
-    });
-  },
-
-  // Get notification templates
-  getTemplates: async (): Promise<ApiResponse<any[]>> => {
-    return apiRequest('/notifications/templates');
-  },
-
-  // Update notification template
-  updateTemplate: async (templateId: string, template: any): Promise<ApiResponse<any>> => {
-    return apiRequest(`/notifications/templates/${templateId}`, {
-      method: 'PUT',
-      body: JSON.stringify(template),
-    });
-  },
-};
+// Notification API removed - functionality no longer available
 
 export { ApiError };

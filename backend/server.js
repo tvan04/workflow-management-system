@@ -13,7 +13,6 @@ const db = require('./config/database');
 const applicationRoutes = require('./routes/applications');
 const collegeRoutes = require('./routes/colleges');
 const analyticsRoutes = require('./routes/analytics');
-const notificationRoutes = require('./routes/notifications');
 const settingsRoutes = require('./routes/settings');
 
 const app = express();
@@ -68,7 +67,6 @@ app.use('/api/colleges', collegeRoutes);
 app.use('/api/metrics', analyticsRoutes);
 app.use('/api/trends', analyticsRoutes);
 app.use('/api/export', analyticsRoutes);
-app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings', settingsRoutes);
 
 // Catch-all for API routes
