@@ -51,9 +51,9 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
     const colors: Record<string, string> = {
       'submitted': 'badge-info',
       'ccc_review': 'badge-warning',
-      'awaiting_primary_approval': 'bg-warning-100 text-warning-800 px-3 py-1 rounded-full text-sm font-medium',
+      'awaiting_primary_approval': 'bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium',
       'rejected': 'badge-error',
-      'fis_entry_pending': 'bg-vanderbilt-gold-100 text-vanderbilt-gold-800 px-3 py-1 rounded-full text-sm font-medium',
+      'fis_entry_pending': 'bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium',
       'completed': 'bg-surface-100 text-surface-800 px-3 py-1 rounded-full text-sm font-medium',
       // Legacy statuses for backward compatibility
       'faculty_vote': 'bg-vanderbilt-navy-100 text-vanderbilt-navy-800 px-3 py-1 rounded-full text-sm font-medium',

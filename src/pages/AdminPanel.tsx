@@ -760,7 +760,7 @@ const CurrentApplicationsTab: React.FC = () => {
       'ccc_review': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'CCC Review' },
       'awaiting_primary_approval': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Awaiting Approval' },
       'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
-      'fis_entry_pending': { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'FIS Entry Pending' },
+      'fis_entry_pending': { bg: 'bg-green-100', text: 'text-green-800', label: 'FIS Entry Pending' },
       'completed': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Completed' },
       // Legacy statuses for backward compatibility
       'faculty_vote': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Legacy: Faculty Vote' },
