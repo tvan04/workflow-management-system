@@ -89,8 +89,10 @@ const validateApplication = [
 // GET /api/applications - Get all applications with optional filtering
 router.get('/', [
   query('status').optional().isIn([
-    'submitted', 'ccc_review', 'faculty_vote', 'awaiting_primary_approval',
-    'approved', 'rejected', 'fis_entry_pending', 'completed'
+    'submitted', 'ccc_review', 'awaiting_primary_approval',
+    'rejected', 'fis_entry_pending', 'completed',
+    // Legacy statuses for filtering backward compatibility
+    'faculty_vote', 'approved'
   ]).withMessage('Invalid status filter'),
   query('college').optional().trim(),
   query('institution').optional().isIn(['vanderbilt', 'vumc']).withMessage('Invalid institution filter')
@@ -235,16 +237,12 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
         ? `${req.body.department}, ${req.body.college}` 
         : req.body.college;
       
-      // Send approval notifications to approvers
-      const approverEmails = emailService.getApproverEmails(applicationData);
-      if (approverEmails.length > 0) {
-        await emailService.sendApprovalNotification(
-          approverEmails,
-          faculty.name,
-          application.id,
-          primaryAppointment
-        );
-      }
+      // Send CCC faculty notification (step 2 of CCC Review)
+      await emailService.sendCCCFacultyNotification(
+        faculty.name,
+        application.id,
+        primaryAppointment
+      );
       
       // Send confirmation email to applicant
       await emailService.sendConfirmationEmail(
@@ -277,8 +275,10 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
 // PATCH /api/applications/:id/status - Update application status
 router.patch('/:id/status', [
   body('status').isIn([
-    'submitted', 'ccc_review', 'faculty_vote', 'awaiting_primary_approval',
-    'approved', 'rejected', 'fis_entry_pending', 'completed'
+    'submitted', 'ccc_review', 'awaiting_primary_approval',
+    'rejected', 'fis_entry_pending', 'completed',
+    // Legacy statuses (will be converted)
+    'faculty_vote', 'approved'
   ]).withMessage('Invalid status'),
   body('notes').optional().trim()
 ], async (req, res) => {
@@ -296,12 +296,50 @@ router.patch('/:id/status', [
       return res.status(404).json({ error: 'Application not found' });
     }
 
-    const { status, notes } = req.body;
+    let { status, notes } = req.body;
     const approver = req.body.approver || 'System'; // In a real app, this would come from auth
+
+    // Convert legacy statuses to new workflow
+    if (status === 'faculty_vote') {
+      status = 'awaiting_primary_approval';
+      notes = notes ? `${notes} [Converted from legacy faculty_vote status]` : 'Converted from legacy faculty_vote status';
+    } else if (status === 'approved') {
+      status = 'fis_entry_pending';
+      notes = notes ? `${notes} [Converted from legacy approved status]` : 'Converted from legacy approved status';
+    }
 
     await application.updateStatus(status, approver, notes);
 
-    // Notification functionality removed
+    // Send emails to approvers when application moves to Primary Approval
+    if (status === 'awaiting_primary_approval') {
+      try {
+        const emailService = new EmailService();
+        const primaryAppointment = application.facultyMember.department 
+          ? `${application.facultyMember.department}, ${application.facultyMember.college}` 
+          : application.facultyMember.college;
+        
+        // Get approver emails from application data
+        const applicationData = {
+          departmentChairEmail: application.departmentChairEmail,
+          divisionChairEmail: application.divisionChairEmail,
+          deanEmail: application.deanEmail,
+          seniorAssociateDeanEmail: application.seniorAssociateDeanEmail
+        };
+        
+        const approverEmails = emailService.getApproverEmails(applicationData);
+        if (approverEmails.length > 0) {
+          await emailService.sendApprovalNotification(
+            approverEmails,
+            application.facultyMember.name,
+            application.id,
+            primaryAppointment
+          );
+        }
+      } catch (error) {
+        console.error('Failed to send approver notification emails:', error.message);
+        // Don't fail the status update if email fails
+      }
+    }
 
     res.json({
       data: application.toJSON(),

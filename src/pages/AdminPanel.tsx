@@ -54,9 +54,7 @@ const ApplicationProgress: React.FC<{ status: ApplicationStatus }> = ({ status }
   const steps = [
     { key: 'submitted', label: 'Submitted' },
     { key: 'ccc_review', label: 'CCC Review' },
-    { key: 'faculty_vote', label: 'Faculty Vote' },
     { key: 'awaiting_primary_approval', label: 'Primary Approval' },
-    { key: 'approved', label: 'Approved' },
     { key: 'fis_entry_pending', label: 'FIS Entry' },
     { key: 'completed', label: 'Completed' }
   ];
@@ -64,12 +62,10 @@ const ApplicationProgress: React.FC<{ status: ApplicationStatus }> = ({ status }
   const statusOrder = {
     'submitted': 0,
     'ccc_review': 1,
-    'faculty_vote': 2,
-    'awaiting_primary_approval': 3,
-    'approved': 4,
+    'awaiting_primary_approval': 2,
     'rejected': -1,
-    'fis_entry_pending': 5,
-    'completed': 6
+    'fis_entry_pending': 3,
+    'completed': 4
   };
 
   const currentStep = statusOrder[status];
@@ -210,9 +206,7 @@ const ApplicationEditModal: React.FC<{
   const statusOptions: { value: ApplicationStatus; label: string }[] = [
     { value: 'submitted', label: 'Submitted' },
     { value: 'ccc_review', label: 'CCC Review' },
-    { value: 'faculty_vote', label: 'Faculty Vote' },
     { value: 'awaiting_primary_approval', label: 'Awaiting Primary Approval' },
-    { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
     { value: 'fis_entry_pending', label: 'FIS Entry Pending' },
     { value: 'completed', label: 'Completed' }
@@ -431,12 +425,8 @@ const ApplicationDetailsModal: React.FC<{
       case 'submitted':
         return 'ccc_review';
       case 'ccc_review':
-        return 'faculty_vote';
-      case 'faculty_vote':
         return 'awaiting_primary_approval';
       case 'awaiting_primary_approval':
-        return 'approved';
-      case 'approved':
         return 'fis_entry_pending';
       case 'fis_entry_pending':
         return 'completed';
@@ -768,15 +758,21 @@ const CurrentApplicationsTab: React.FC = () => {
     const statusConfig = {
       'submitted': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Submitted' },
       'ccc_review': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'CCC Review' },
-      'faculty_vote': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Faculty Vote' },
       'awaiting_primary_approval': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Awaiting Approval' },
-      'approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
       'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
-      'fis_entry_pending': { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'FIS Entry Pending' },
-      'completed': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Completed' }
+      'fis_entry_pending': { bg: 'bg-green-100', text: 'text-green-800', label: 'FIS Entry Pending' },
+      'completed': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Completed' },
+      // Legacy statuses for backward compatibility
+      'faculty_vote': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Legacy: Faculty Vote' },
+      'approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Legacy: Approved' }
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status] || { 
+      bg: 'bg-gray-100', 
+      text: 'text-gray-800', 
+      label: `Unknown: ${status}` 
+    };
+    
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
         {config.label}
@@ -823,9 +819,7 @@ const CurrentApplicationsTab: React.FC = () => {
     { value: 'all', label: 'All Statuses' },
     { value: 'submitted', label: 'Submitted' },
     { value: 'ccc_review', label: 'CCC Review' },
-    { value: 'faculty_vote', label: 'Faculty Vote' },
     { value: 'awaiting_primary_approval', label: 'Awaiting Approval' },
-    { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
     { value: 'fis_entry_pending', label: 'FIS Entry Pending' },
     { value: 'completed', label: 'Completed' }

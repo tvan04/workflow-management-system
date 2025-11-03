@@ -167,9 +167,9 @@ export const mockApplications: Application[] = [
       dean: { name: 'Dr. Margaret Foster', email: 'margaret.foster@vanderbilt.edu' },
       hasDepartments: true
     },
-    status: 'approved',
+    status: 'awaiting_primary_approval',
     submittedAt: new Date('2024-08-20'),
-    updatedAt: new Date('2024-09-25'),
+    updatedAt: new Date(),
     rationale: 'My work on human-computer interaction and digital behavior research aligns well with CCC\'s interdisciplinary approach to connected computing research.',
     statusHistory: [
       {
@@ -190,13 +190,19 @@ export const mockApplications: Application[] = [
         notes: 'Department chair approval received'
       },
       {
-        status: 'approved',
+        status: 'fis_entry_pending',
         timestamp: new Date('2024-09-25T16:10:00'),
         approver: 'Dr. Margaret Foster',
         notes: 'Dean approval received - appointment approved'
+      },
+      {
+        status: 'awaiting_primary_approval',
+        timestamp: new Date(),
+        approver: 'Admin',
+        notes: 'Status changed back to Primary Approval for review'
       }
     ],
-    currentApprover: undefined,
+    currentApprover: 'Dr. James Wilson (Department Chair)',
     fisEntered: false,
     processingTimeWeeks: 5
   },
@@ -238,7 +244,7 @@ export const mockApplications: Application[] = [
         notes: 'Dean approval received'
       },
       {
-        status: 'approved',
+        status: 'fis_entry_pending',
         timestamp: new Date('2024-08-01T09:15:00'),
         notes: 'All approvals complete'
       },
@@ -263,12 +269,10 @@ export const mockMetrics: DashboardMetrics = {
   applicationsByStatus: {
     'submitted': 8,
     'ccc_review': 12,
-    'faculty_vote': 0,
     'awaiting_primary_approval': 15,
-    'approved': 7,
-    'rejected': 2,
-    'fis_entry_pending': 3,
-    'completed': 0
+    'fis_entry_pending': 10,
+    'completed': 0,
+    'rejected': 2
   },
   averageProcessingTime: 4.2,
   stalledApplications: mockApplications.filter(app => {
@@ -277,7 +281,7 @@ export const mockMetrics: DashboardMetrics = {
   }),
   recentActivity: [
     {
-      status: 'approved',
+      status: 'fis_entry_pending',
       timestamp: new Date('2024-10-13T14:30:00'),
       approver: 'Dr. Jennifer Davis',
       notes: 'VUMC faculty appointment approved'
@@ -309,7 +313,6 @@ export const generateMockApplications = (count: number): Application[] => {
     'submitted',
     'ccc_review',
     'awaiting_primary_approval',
-    'approved',
     'fis_entry_pending',
     'completed'
   ];
