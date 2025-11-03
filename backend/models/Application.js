@@ -6,7 +6,7 @@ class Application {
   constructor(data = {}) {
     this.id = data.id || `APP-${moment().format('YYYY')}-${uuidv4().substring(0, 8).toUpperCase()}`;
     this.facultyMemberId = data.facultyMemberId;
-    this.status = data.status || 'submitted';
+    this.status = data.status || 'ccc_review';
     this.appointmentType = data.appointmentType;
     this.effectiveDate = data.effectiveDate;
     this.duration = data.duration;
@@ -60,7 +60,7 @@ class Application {
     await db.run(query, params);
     
     // Add initial status to history
-    await this.addStatusHistory('submitted', null, 'Application submitted successfully');
+    await this.addStatusHistory('ccc_review', null, 'Application submitted and moved to CCC Review');
     
     return this;
   }
@@ -125,18 +125,14 @@ class Application {
   getNextApprover(status) {
     switch (status) {
       case 'submitted':
-        return 'CCC Staff';
+        return 'CCC Faculty';
       case 'ccc_review':
-        return 'CCC Dean\'s Office';
-      case 'faculty_vote':
         return 'CCC Faculty';
       case 'awaiting_primary_approval':
         if (this.hasDepartments && this.departmentChairName) {
           return `${this.departmentChairName} (Department Chair)`;
         }
         return `${this.deanName} (Dean)`;
-      case 'approved':
-        return 'CCC Staff (FIS Entry)';
       case 'fis_entry_pending':
         return 'CCC Staff (FIS Entry)';
       case 'completed':
@@ -345,12 +341,10 @@ class Application {
     const applicationsByStatus = {
       'submitted': 0,
       'ccc_review': 0,
-      'faculty_vote': 0,
       'awaiting_primary_approval': 0,
-      'approved': 0,
-      'rejected': 0,
       'fis_entry_pending': 0,
-      'completed': 0
+      'completed': 0,
+      'rejected': 0
     };
     
     statusRows.forEach(row => {

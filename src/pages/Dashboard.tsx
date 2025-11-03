@@ -48,31 +48,33 @@ interface ApplicationRowProps {
 
 const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
   const getStatusColor = (status: AppStatus): string => {
-    const colors: Record<AppStatus, string> = {
+    const colors: Record<string, string> = {
       'submitted': 'badge-info',
       'ccc_review': 'badge-warning',
-      'faculty_vote': 'bg-vanderbilt-navy-100 text-vanderbilt-navy-800 px-3 py-1 rounded-full text-sm font-medium',
       'awaiting_primary_approval': 'bg-warning-100 text-warning-800 px-3 py-1 rounded-full text-sm font-medium',
-      'approved': 'badge-success',
       'rejected': 'badge-error',
       'fis_entry_pending': 'bg-vanderbilt-gold-100 text-vanderbilt-gold-800 px-3 py-1 rounded-full text-sm font-medium',
-      'completed': 'bg-surface-100 text-surface-800 px-3 py-1 rounded-full text-sm font-medium'
+      'completed': 'bg-surface-100 text-surface-800 px-3 py-1 rounded-full text-sm font-medium',
+      // Legacy statuses for backward compatibility
+      'faculty_vote': 'bg-vanderbilt-navy-100 text-vanderbilt-navy-800 px-3 py-1 rounded-full text-sm font-medium',
+      'approved': 'badge-success'
     };
-    return colors[status];
+    return colors[status] || 'bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium';
   };
 
   const getStatusLabel = (status: AppStatus): string => {
-    const labels: Record<AppStatus, string> = {
+    const labels: Record<string, string> = {
       'submitted': 'Submitted',
       'ccc_review': 'CCC Review',
-      'faculty_vote': 'Faculty Vote',
       'awaiting_primary_approval': 'Awaiting Primary Approval',
-      'approved': 'Approved',
       'rejected': 'Rejected',
       'fis_entry_pending': 'FIS Entry Pending',
-      'completed': 'Completed'
+      'completed': 'Completed',
+      // Legacy statuses for backward compatibility
+      'faculty_vote': 'Legacy: Faculty Vote',
+      'approved': 'Legacy: Approved'
     };
-    return labels[status];
+    return labels[status] || `Unknown: ${status}`;
   };
 
   const daysSinceUpdate = Math.floor((new Date().getTime() - new Date(application.updatedAt).getTime()) / (1000 * 3600 * 24));
@@ -166,12 +168,10 @@ const Dashboard: React.FC = () => {
           applicationsByStatus: {
             'submitted': 0,
             'ccc_review': 0,
-            'faculty_vote': 0,
             'awaiting_primary_approval': 0,
-            'approved': 0,
-            'rejected': 0,
             'fis_entry_pending': 0,
-            'completed': 0
+            'completed': 0,
+            'rejected': 0
           },
           averageProcessingTime: 0,
           stalledApplications: [],
@@ -189,10 +189,20 @@ const Dashboard: React.FC = () => {
     { month: 'Oct', avgTime: 6.2 },
   ];
 
-  const statusDistributionData = metrics ? Object.entries(metrics.applicationsByStatus)
-    .map(([status, count]) => ({
-      status: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      count: count || 0
+  const statusDistributionData = metrics ? ([
+    'submitted',
+    'ccc_review', 
+    'awaiting_primary_approval',
+    'fis_entry_pending',
+    'completed',
+    'rejected'  // Moved to last position
+  ] as AppStatus[])
+    .filter(status => status in metrics.applicationsByStatus) // Only include existing statuses
+    .map(status => ({
+      status: status === 'awaiting_primary_approval' 
+        ? 'Primary Approval' 
+        : status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      count: metrics.applicationsByStatus[status] || 0
     })) : [];
 
   if (!metrics) {

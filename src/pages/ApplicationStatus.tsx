@@ -280,11 +280,6 @@ const ApplicationStatus: React.FC = () => {
       description: `Waiting for approval from your college dean: ${app.approvalChain.dean.name}`,
     });
 
-    steps.push({
-      key: 'approved',
-      label: 'Approved',
-      description: 'Your secondary appointment has been approved by all required parties.',
-    });
 
     steps.push({
       key: 'fis_entry_pending',
@@ -314,9 +309,7 @@ const ApplicationStatus: React.FC = () => {
       const statusOrder: AppStatus[] = [
         'submitted',
         'ccc_review', 
-        'faculty_vote',
         'awaiting_primary_approval',
-        'approved',
         'fis_entry_pending',
         'completed'
       ];

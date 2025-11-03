@@ -1,9 +1,7 @@
 export type ApplicationStatus = 
   | 'submitted'
   | 'ccc_review'
-  | 'faculty_vote'
   | 'awaiting_primary_approval'
-  | 'approved'
   | 'rejected'
   | 'fis_entry_pending'
   | 'completed';
