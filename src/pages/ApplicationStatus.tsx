@@ -297,6 +297,11 @@ const ApplicationStatus: React.FC = () => {
   };
 
   const getStepStatus = (stepKey: string, currentStatus: AppStatus, statusHistory: StatusHistoryItem[] | undefined) => {
+    // Special case: "completed" step should always be green (completed) when reached
+    if (stepKey === 'completed' && currentStatus === 'completed') {
+      return 'completed';
+    }
+    
     // First check: if this is the current status, it's current (not completed)
     if (stepKey === currentStatus) {
       return 'current';
@@ -326,6 +331,38 @@ const ApplicationStatus: React.FC = () => {
     } else {
       return 'pending';
     }
+  };
+
+  // Helper function to get the approval information for a completed step
+  const getStepApprovalInfo = (stepKey: string, currentStatus: AppStatus, statusHistory: StatusHistoryItem[] | undefined) => {
+    const stepStatus = getStepStatus(stepKey, currentStatus, statusHistory);
+    
+    // Only show approval info for completed steps
+    if (stepStatus !== 'completed') {
+      return { date: undefined, approver: undefined, notes: undefined };
+    }
+    
+    // Find the history entry that shows this step was completed
+    // This is the entry that moved the application TO the next step
+    const statusOrder: AppStatus[] = ['submitted', 'ccc_review', 'awaiting_primary_approval', 'fis_entry_pending', 'completed'];
+    const stepIndex = statusOrder.indexOf(stepKey as AppStatus);
+    
+    if (stepIndex === -1 || stepIndex >= statusOrder.length - 1) {
+      return { date: undefined, approver: undefined, notes: undefined };
+    }
+    
+    const nextStatus = statusOrder[stepIndex + 1];
+    const completionEntry = statusHistory?.find(item => item.status === nextStatus);
+    
+    if (completionEntry) {
+      return {
+        date: completionEntry.timestamp,
+        approver: completionEntry.approver,
+        notes: completionEntry.notes
+      };
+    }
+    
+    return { date: undefined, approver: undefined, notes: undefined };
   };
 
   if (loading) {
@@ -383,7 +420,7 @@ const ApplicationStatus: React.FC = () => {
         <div className="space-y-4">
           {workflowSteps.map((step, index) => {
             const stepStatus = getStepStatus(step.key, application.status, application.statusHistory || []);
-            const historyItem = application.statusHistory?.find(item => item.status === step.key);
+            const approvalInfo = getStepApprovalInfo(step.key, application.status, application.statusHistory || []);
             
             return (
               <div key={step.key} className="relative">
@@ -391,9 +428,9 @@ const ApplicationStatus: React.FC = () => {
                   label={step.label}
                   description={step.description}
                   status={stepStatus}
-                  date={historyItem?.timestamp}
-                  approver={historyItem?.approver}
-                  notes={historyItem?.notes}
+                  date={approvalInfo.date}
+                  approver={approvalInfo.approver}
+                  notes={approvalInfo.notes}
                 />
                 
                 {index < workflowSteps.length - 1 && (
