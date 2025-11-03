@@ -8,7 +8,22 @@ export type ApplicationStatus =
 
 export type InstitutionalAffiliation = 'vanderbilt' | 'vumc';
 
-export type UserRole = 'faculty' | 'ccc_staff' | 'dean' | 'chair' | 'admin';
+export type UserRole = 'faculty' | 'ccc_staff' | 'dean' | 'chair' | 'admin' | 'applicant';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'applicant';
+}
+
+export interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+}
 
 export interface FacultyMember {
   id: string;

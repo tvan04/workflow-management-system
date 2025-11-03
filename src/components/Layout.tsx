@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard,
   FileText,
   Search,
-  Settings
+  Settings,
+  LogOut,
+  User
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -13,13 +16,28 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { user, isAdmin, logout } = useAuth();
 
-  const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/apply', label: 'Apply', icon: FileText },
-    { path: '/status', label: 'Status', icon: Search },
-    { path: '/admin', label: 'Admin', icon: Settings },
-  ];
+  // Define navigation items based on user role
+  const getNavItems = () => {
+    if (isAdmin) {
+      return [
+        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/admin', label: 'Admin', icon: Settings },
+      ];
+    } else {
+      return [
+        { path: '/apply', label: 'Apply', icon: FileText },
+        { path: '/status', label: 'Status', icon: Search },
+      ];
+    }
+  };
+
+  const navItems = getNavItems();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -44,29 +62,49 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
             
-            {/* Modern Navigation */}
-            <nav className="hidden md:flex items-center space-x-2 bg-surface-100 p-2 rounded-2xl">
-              {navItems.map((item) => {
-                const IconComponent = item.icon;
-                const isActive = location.pathname === item.path || 
-                  (item.path === '/dashboard' && location.pathname === '/');
-                
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`nav-link ${
-                      isActive
-                        ? 'nav-link-active'
-                        : 'nav-link-inactive'
-                    }`}
-                  >
-                    <IconComponent className="h-4 w-4" />
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+            {/* Right side: Navigation + User Menu */}
+            <div className="flex items-center space-x-4">
+              {/* Modern Navigation */}
+              <nav className="hidden md:flex items-center space-x-2 bg-surface-100 p-2 rounded-2xl">
+                {navItems.map((item) => {
+                  const IconComponent = item.icon;
+                  const isActive = location.pathname === item.path || 
+                    (item.path === '/dashboard' && location.pathname === '/') ||
+                    (item.path === '/apply' && location.pathname === '/');
+                  
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`nav-link ${
+                        isActive
+                          ? 'nav-link-active'
+                          : 'nav-link-inactive'
+                      }`}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                      <span className="font-medium">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              {/* User Menu */}
+              <div className="flex items-center space-x-3">
+                <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-700">
+                  <User className="h-4 w-4" />
+                  <span className="font-medium">{user?.name}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </button>
+              </div>
+            </div>
 
             {/* Mobile Menu Button */}
             <div className="md:hidden">
