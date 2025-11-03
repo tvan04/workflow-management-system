@@ -159,7 +159,6 @@ const ApplicationForm: React.FC = () => {
     
     if (!formData.college.trim()) newErrors.college = 'College is required';
     if (!formData.appointmentType.trim()) newErrors.appointmentType = 'Appointment type is required';
-    if (!formData.effectiveDate.trim()) newErrors.effectiveDate = 'Effective date is required';
     if (!formData.duration.trim()) newErrors.duration = 'Duration is required';
     if (!formData.rationale.trim()) newErrors.rationale = 'Rationale is required';
     if (!formData.cvFile) newErrors.cvFile = 'CV is required';
@@ -448,7 +447,7 @@ const ApplicationForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Effective Date *
+                Effective Date
               </label>
               <input
                 type="date"
