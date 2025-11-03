@@ -1,0 +1,14 @@
+Connected to SQLite database
+Database tables created successfully
+Database already has data, skipping seed
+Starting scheduler service...
+Started scheduled job: processingTimes
+Started scheduled job: weeklyMetrics
+Scheduler service started successfully
+Server running on port 3001
+Environment: development
+Database: ./data/database.sqlite
+API Documentation: http://localhost:3001/health
+::1 - - [03/Nov/2025:21:08:45 +0000] "GET /api/applications HTTP/1.1" 200 7674 "-" "axios/1.12.2"
+::1 - - [03/Nov/2025:21:09:56 +0000] "GET /api/applications HTTP/1.1" 200 7674 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+::1 - - [03/Nov/2025:21:09:56 +0000] "GET /api/applications HTTP/1.1" 200 7674 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"

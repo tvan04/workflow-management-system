@@ -30,7 +30,7 @@ const StatusStep: React.FC<StatusStepProps> = ({ label, description, status, dat
       case 'completed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'current':
-        return <Clock className="h-5 w-5 text-blue-500" />;
+        return <Clock className="h-5 w-5 text-yellow-500" />;
       case 'rejected':
         return <XCircle className="h-5 w-5 text-red-500" />;
       default:
@@ -43,7 +43,7 @@ const StatusStep: React.FC<StatusStepProps> = ({ label, description, status, dat
       case 'completed':
         return 'border-green-200 bg-green-50';
       case 'current':
-        return 'border-blue-200 bg-blue-50';
+        return 'border-yellow-200 bg-yellow-50';
       case 'rejected':
         return 'border-red-200 bg-red-50';
       default:
@@ -297,31 +297,34 @@ const ApplicationStatus: React.FC = () => {
   };
 
   const getStepStatus = (stepKey: string, currentStatus: AppStatus, statusHistory: StatusHistoryItem[] | undefined) => {
-    // Find if this step has been completed
-    const historyItem = statusHistory?.find(item => item.status === stepKey);
+    // First check: if this is the current status, it's current (not completed)
+    if (stepKey === currentStatus) {
+      return 'current';
+    }
     
+    // Second check: if this step appears in history and is not current, it's completed
+    const historyItem = statusHistory?.find(item => item.status === stepKey);
     if (historyItem) {
       return 'completed';
-    } else if (stepKey === currentStatus) {
-      return 'current';
+    }
+    
+    // Third check: position-based logic for steps not in history
+    // Check if we've passed this step
+    const statusOrder: AppStatus[] = [
+      'submitted',
+      'ccc_review', 
+      'awaiting_primary_approval',
+      'fis_entry_pending',
+      'completed'
+    ];
+    
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const stepIndex = statusOrder.indexOf(stepKey as AppStatus);
+    
+    if (currentIndex > stepIndex) {
+      return 'completed';
     } else {
-      // Check if we've passed this step
-      const statusOrder: AppStatus[] = [
-        'submitted',
-        'ccc_review', 
-        'awaiting_primary_approval',
-        'fis_entry_pending',
-        'completed'
-      ];
-      
-      const currentIndex = statusOrder.indexOf(currentStatus);
-      const stepIndex = statusOrder.indexOf(stepKey as AppStatus);
-      
-      if (currentIndex > stepIndex) {
-        return 'completed';
-      } else {
-        return 'pending';
-      }
+      return 'pending';
     }
   };
 

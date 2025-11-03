@@ -275,7 +275,8 @@ class Application {
 
     const rows = await db.all(query, params);
     
-    return rows.map(row => {
+    const applications = [];
+    for (const row of rows) {
       const app = new Application(row);
       app.facultyMember = {
         id: row.faculty_member_id,
@@ -286,8 +287,14 @@ class Application {
         college: row.faculty_college,
         institution: row.faculty_institution
       };
-      return app;
-    });
+      
+      // Load status history for each application
+      app.statusHistory = await app.getStatusHistory();
+      
+      applications.push(app);
+    }
+    
+    return applications;
   }
 
   static async search(query) {

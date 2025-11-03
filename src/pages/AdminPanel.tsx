@@ -409,6 +409,53 @@ const ApplicationEditModal: React.FC<{
   );
 };
 
+// Helper function to format status names for display
+const formatStatusName = (status: string): string => {
+  return status.replace(/_/g, ' ').split(' ').map(word => {
+    // Keep certain words in uppercase
+    if (word.toLowerCase() === 'ccc' || word.toLowerCase() === 'fis') {
+      return word.toUpperCase();
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+};
+
+// Helper function to determine completed steps from status history  
+const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: string) => {
+  if (!statusHistory || statusHistory.length === 0) return [];
+  
+  const completedSteps = [];
+  
+  // Process each status history entry to find completed steps
+  for (let i = 0; i < statusHistory.length; i++) {
+    const historyItem = statusHistory[i];
+    
+    // Map each recorded status to the step that was completed to reach it
+    let completedStep = '';
+    switch (historyItem.status) {
+      case 'awaiting_primary_approval':
+        completedStep = 'ccc_review'; // CCC Review was completed to reach Primary Approval
+        break;
+      case 'fis_entry_pending':
+        completedStep = 'awaiting_primary_approval'; // Primary Approval was completed to reach FIS Entry
+        break;
+      case 'completed':
+        completedStep = 'fis_entry_pending'; // FIS Entry was completed to reach Completed
+        break;
+      case 'ccc_review':
+      default:
+        continue; // Skip ccc_review transitions (submission) and unknown statuses
+    }
+    
+    completedSteps.push({
+      ...historyItem,
+      displayStatus: completedStep
+    });
+  }
+  
+  return completedSteps;
+};
+
 // Application details modal
 const ApplicationDetailsModal: React.FC<{
   application: Application;
@@ -454,11 +501,16 @@ const ApplicationDetailsModal: React.FC<{
         'CCC Admin'
       );
       
-      // Update the application object with new status
+      // Fetch the updated application with fresh status history
+      const response = await applicationApi.getById(application.id);
       const updatedApplication = {
-        ...application,
-        status: nextStatus,
-        updatedAt: new Date()
+        ...response.data,
+        submittedAt: new Date(response.data.submittedAt),
+        updatedAt: new Date(response.data.updatedAt),
+        statusHistory: response.data.statusHistory?.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        })) || []
       };
       
       onStatusUpdate(updatedApplication);
@@ -573,28 +625,41 @@ const ApplicationDetailsModal: React.FC<{
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-3">Status History</h4>
             <div className="space-y-3">
-              {application.statusHistory.map((history, index) => (
-                <div key={index} className="border-l-4 border-primary-500 pl-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-gray-900 capitalize">
-                        {history.status.replace('_', ' ')}
-                      </p>
-                      {history.approver && (
-                        <p className="text-sm text-gray-600">by {history.approver}</p>
-                      )}
-                      {history.notes && (
-                        <p className="text-sm text-gray-500 mt-1">{history.notes}</p>
-                      )}
+              {(() => {
+                const completedSteps = getCompletedStepsFromHistory(application.statusHistory, application.status);
+                
+                return completedSteps.length > 0 ? (
+                  completedSteps.map((history, index) => (
+                    <div key={index} className="border-l-4 border-primary-500 pl-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {formatStatusName(history.displayStatus)}
+                          </p>
+                          {history.approver && (
+                            <p className="text-sm text-gray-600">by {history.approver}</p>
+                          )}
+                          {history.notes && (
+                            <p className="text-sm text-gray-500 mt-1">{history.notes}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {history.timestamp instanceof Date 
+                            ? history.timestamp.toLocaleString() 
+                            : new Date(history.timestamp).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {history.timestamp instanceof Date 
-                        ? history.timestamp.toLocaleString() 
-                        : new Date(history.timestamp).toLocaleString()}
-                    </span>
+                  ))
+                ) : (
+                  <div className="text-center py-6 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">No status history available</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Status changes will appear here as the application progresses
+                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })()}
             </div>
           </div>
 
@@ -636,9 +701,9 @@ const ApplicationDetailsModal: React.FC<{
                   Are you sure you want to manually approve this application and advance it to the next step?
                 </p>
                 <p className="text-xs text-gray-400 mt-2">
-                  Current Status: <strong>{application.status.replace('_', ' ').toUpperCase()}</strong>
+                  Current Status: <strong>{formatStatusName(application.status)}</strong>
                   <br />
-                  Next Status: <strong>{getNextStatus(application.status)?.replace('_', ' ').toUpperCase()}</strong>
+                  Next Status: <strong>{getNextStatus(application.status) ? formatStatusName(getNextStatus(application.status)!) : ''}</strong>
                 </p>
               </div>
               <div className="items-center px-4 py-3 space-x-4">
