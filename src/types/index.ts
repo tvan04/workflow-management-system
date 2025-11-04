@@ -70,6 +70,9 @@ export interface Application {
   fisEntryDate?: Date;
   processingTimeWeeks?: number;
   primaryAppointmentEndDate?: Date; // Admin-only field
+  duration?: string;
+  effectiveDate?: string;
+  appointmentType?: string;
 }
 
 export interface StatusHistoryItem {

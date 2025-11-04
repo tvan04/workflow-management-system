@@ -7,6 +7,7 @@ const { body, validationResult, query } = require('express-validator');
 const Application = require('../models/Application');
 const FacultyMember = require('../models/FacultyMember');
 const EmailService = require('../services/EmailService');
+const NotificationService = require('../services/NotificationService');
 
 const router = express.Router();
 
@@ -230,30 +231,13 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
     // Add faculty member data for response
     application.facultyMember = faculty.toJSON();
 
-    // Send email notifications
+    // Send notification to faculty and CCC staff
     try {
-      const emailService = new EmailService();
-      const primaryAppointment = req.body.department 
-        ? `${req.body.department}, ${req.body.college}` 
-        : req.body.college;
-      
-      // Send CCC faculty notification (step 2 of CCC Review)
-      await emailService.sendCCCFacultyNotification(
-        faculty.name,
-        application.id,
-        primaryAppointment
-      );
-      
-      // Send confirmation email to applicant
-      await emailService.sendConfirmationEmail(
-        faculty.email,
-        faculty.name,
-        application.id,
-        primaryAppointment
-      );
-    } catch (error) {
-      console.error('Email notification failed:', error.message);
-      // Don't fail the application submission if email fails
+      const notificationService = new NotificationService();
+      await notificationService.sendApplicationSubmittedNotification(application);
+    } catch (notificationError) {
+      console.error('Failed to send notification:', notificationError);
+      // Don't fail the request if notification fails
     }
 
     res.status(201).json({
@@ -310,35 +294,13 @@ router.patch('/:id/status', [
 
     await application.updateStatus(status, approver, notes);
 
-    // Send emails to approvers when application moves to Primary Approval
-    if (status === 'awaiting_primary_approval') {
-      try {
-        const emailService = new EmailService();
-        const primaryAppointment = application.facultyMember.department 
-          ? `${application.facultyMember.department}, ${application.facultyMember.college}` 
-          : application.facultyMember.college;
-        
-        // Get approver emails from application data
-        const applicationData = {
-          departmentChairEmail: application.departmentChairEmail,
-          divisionChairEmail: application.divisionChairEmail,
-          deanEmail: application.deanEmail,
-          seniorAssociateDeanEmail: application.seniorAssociateDeanEmail
-        };
-        
-        const approverEmails = emailService.getApproverEmails(applicationData);
-        if (approverEmails.length > 0) {
-          await emailService.sendApprovalNotification(
-            approverEmails,
-            application.facultyMember.name,
-            application.id,
-            primaryAppointment
-          );
-        }
-      } catch (error) {
-        console.error('Failed to send approver notification emails:', error.message);
-        // Don't fail the status update if email fails
-      }
+    // Send status change notifications
+    try {
+      const notificationService = new NotificationService();
+      await notificationService.sendStatusChangeNotification(application, status);
+    } catch (error) {
+      console.error('Failed to send status change notification:', error.message);
+      // Don't fail the status update if notification fails
     }
 
     res.json({
@@ -396,6 +358,70 @@ router.put('/:id', [
   } catch (error) {
     console.error('Error updating application:', error);
     res.status(500).json({ error: 'Failed to update application' });
+  }
+});
+
+// POST /api/applications/:id/approve - Process approval from signature page
+router.post('/:id/approve', [
+  body('approverEmail').isEmail().withMessage('Valid approver email is required'),
+  body('action').isIn(['approve', 'deny']).withMessage('Action must be approve or deny'),
+  body('signature').trim().notEmpty().withMessage('Signature is required'),
+  body('notes').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: errors.array() 
+      });
+    }
+
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const { approverEmail, action, signature, notes } = req.body;
+
+    // Determine new status based on action
+    let newStatus;
+    let approverName = signature; // Use signature as approver name
+    
+    if (action === 'approve') {
+      // Move to next step in approval chain
+      switch (application.status) {
+        case 'ccc_review':
+          newStatus = 'awaiting_primary_approval';
+          break;
+        case 'awaiting_primary_approval':
+          newStatus = 'approved';
+          break;
+        default:
+          newStatus = 'approved';
+      }
+    } else {
+      newStatus = 'rejected';
+    }
+
+    // Update application status
+    await application.updateStatus(newStatus, approverName, notes || `${action === 'approve' ? 'Approved' : 'Denied'} by ${signature}`);
+
+    // Send notification about status change
+    try {
+      await NotificationService.sendStatusChangeNotification(application, newStatus);
+    } catch (notificationError) {
+      console.error('Failed to send notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
+
+    res.json({
+      data: { success: true, newStatus },
+      message: `Application ${action === 'approve' ? 'approved' : 'denied'} successfully`
+    });
+  } catch (error) {
+    console.error('Error processing approval:', error);
+    res.status(500).json({ error: 'Failed to process approval' });
   }
 });
 

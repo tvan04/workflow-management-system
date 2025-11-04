@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
 import ApplicationStatus from './pages/ApplicationStatus';
 import AdminPanel from './pages/AdminPanel';
+import SignaturePage from './pages/SignaturePage';
 import RoleBasedRedirect from './components/RoleBasedRedirect';
 import './App.css';
 
@@ -16,8 +17,9 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public login route */}
+          {/* Public routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/signature/:applicationId" element={<SignaturePage />} />
           
           {/* Protected routes with Layout */}
           <Route path="/*" element={

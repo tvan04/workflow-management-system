@@ -81,7 +81,24 @@ export const applicationApi = {
     });
   },
 
-  // Reminder functionality removed
+  // Process approval/denial from signature page
+  processApproval: async (approvalData: {
+    applicationId: string;
+    approverEmail: string;
+    action: 'approve' | 'deny';
+    signature: string;
+    notes?: string;
+  }): Promise<ApiResponse<{ success: boolean }>> => {
+    return apiRequest(`/applications/${approvalData.applicationId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({
+        approverEmail: approvalData.approverEmail,
+        action: approvalData.action,
+        signature: approvalData.signature,
+        notes: approvalData.notes
+      }),
+    });
+  },
 };
 
 // College and organizational data API
