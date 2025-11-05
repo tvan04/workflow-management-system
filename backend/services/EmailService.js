@@ -5,10 +5,13 @@ class EmailService {
   constructor() {
     this.apiKey = process.env.REACT_APP_AMPLIFY_API_KEY;
     this.apiUrl = 'https://prod-api.vanderbilt.ai/microsoft/integrations/send_mail';
-    this.cccFacultyEmail = 'tristan.v.van@vanderbilt.edu'; // Configurable CCC faculty email
+    this.cccFacultyEmail = process.env.CCC_FACULTY_EMAIL; // Configurable CCC faculty email
     
     if (!this.apiKey) {
       console.warn('Warning: REACT_APP_AMPLIFY_API_KEY not found in environment variables');
+    }
+    if (!this.cccFacultyEmail) {
+      console.warn('Warning: CCC_FACULTY_EMAIL not found in environment variables');
     }
   }
 
@@ -24,20 +27,11 @@ class EmailService {
 
     // Filter out any null/undefined emails and restrict to test email only
     const validEmails = approverEmails.filter(email => email && email.trim());
-    
-    // FOR TESTING: Only send to tristan.v.van@vanderbilt.edu
-    const testEmails = validEmails.filter(email => email.trim() === 'tristan.v.van@vanderbilt.edu');
-    
-    if (testEmails.length === 0) {
-      console.log('⚠️ FOR TESTING: Emails restricted to tristan.v.van@vanderbilt.edu only. Skipping notification.');
-      console.log(`Original recipients would have been: ${validEmails.join(', ')}`);
-      return;
-    }
 
     // Send individual emails with personalized approval links
     const results = [];
     
-    for (const approverEmail of testEmails) {
+    for (const approverEmail of validEmails) {
       // Generate approval token (simple approach - in production use JWT or secure tokens)
       const approvalToken = Buffer.from(`${applicationId}:${approverEmail}:${Date.now()}`).toString('base64');
       

@@ -53,7 +53,7 @@ const validateApplication = [
   body('title').trim().notEmpty().withMessage('Title is required'),
   body('college').trim().notEmpty().withMessage('College is required'),
   body('appointmentType').isIn(['initial', 'secondary']).withMessage('Valid appointment type is required'),
-  body('effectiveDate').isDate().withMessage('Valid effective date is required'),
+  body('effectiveDate').optional({ values: 'falsy' }).isDate().withMessage('Valid effective date is required'),
   body('duration').isIn(['1year', '2year', '3year']).withMessage('Valid duration is required'),
   body('rationale').trim().notEmpty().withMessage('Rationale is required'),
   body('deanName').trim().notEmpty().withMessage('Dean name is required'),
@@ -207,7 +207,7 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
     const applicationData = {
       facultyMemberId: faculty.id,
       appointmentType: req.body.appointmentType,
-      effectiveDate: req.body.effectiveDate,
+      effectiveDate: req.body.effectiveDate || null,
       duration: req.body.duration,
       rationale: req.body.rationale,
       cvFilePath: req.file.path,

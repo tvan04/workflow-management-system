@@ -2,18 +2,20 @@
 
 const axios = require('axios');
 const FormData = require('form-data');
+require('dotenv').config();
 const fs = require('fs');
 
 async function testApplicationSubmission() {
   console.log('🔍 Testing Application Submission with Test Email\n');
+    const testEmail = process.env.TEST_EMAIL || 'test@vanderbilt.edu';
 
   try {
-    console.log('1. Creating test application with tristan.v.van@vanderbilt.edu emails...');
+    console.log(`1. Creating test application with ${testEmail} emails...`);
     
     // Create form data with test email for all fields
     const formData = new FormData();
     formData.append('name', 'Dr. Test Faculty Member');
-    formData.append('email', 'tristan.v.van@vanderbilt.edu'); // Use test email
+    formData.append('email', testEmail); // Use test email
     formData.append('title', 'Associate Professor');
     formData.append('department', 'Computer Science');
     formData.append('college', 'School of Engineering');

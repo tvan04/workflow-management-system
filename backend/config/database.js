@@ -84,7 +84,7 @@ class Database {
           'approved', 'rejected', 'fis_entry_pending', 'completed'
         )),
         appointment_type TEXT NOT NULL CHECK (appointment_type IN ('initial', 'secondary')),
-        effective_date DATE NOT NULL,
+        effective_date DATE,
         duration TEXT NOT NULL CHECK (duration IN ('1year', '2year', '3year')),
         rationale TEXT NOT NULL,
         cv_file_path TEXT,

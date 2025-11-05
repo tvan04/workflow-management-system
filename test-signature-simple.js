@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 
 const axios = require('axios');
+require('dotenv').config();
 
 async function testSignatureWorkflow() {
   console.log('🔍 Testing Signature Page Workflow (Simple)\n');
+  
+  const testEmail = process.env.TEST_EMAIL || 'test@vanderbilt.edu';
+  console.log(`Using test email: ${testEmail}`);
 
   try {
     console.log('1. Getting existing applications...');
@@ -40,7 +44,7 @@ async function testSignatureWorkflow() {
     
     // Test approval submission
     const approvalData = {
-      approverEmail: 'tristan.v.van@vanderbilt.edu',
+      approverEmail: testEmail,
       action: 'approve',
       signature: 'Dr. Tristan Van Test Signature',
       notes: 'Test approval via signature page workflow'
@@ -79,7 +83,7 @@ async function testSignatureWorkflow() {
     const anotherApp = applications.find(app => app.id !== applicationId) || applications[0];
     
     const denialData = {
-      approverEmail: 'tristan.v.van@vanderbilt.edu',
+      approverEmail: testEmail,
       action: 'deny',
       signature: 'Dr. Tristan Van Test Signature',
       notes: 'Test denial via signature page - insufficient justification for testing'
@@ -109,12 +113,12 @@ async function testSignatureWorkflow() {
 
     console.log('\n🎯 FRONTEND TESTING INSTRUCTIONS:');
     console.log(`1. Visit: http://localhost:3000/signature/${applicationId}`);
-    console.log('2. Add query params: ?approver=tristan.v.van@vanderbilt.edu&token=testtoken');
+    console.log(`2. Add query params: ?approver=${testEmail}&token=testtoken`);
     console.log('3. Test the signature page UI');
     console.log('4. Try approval/denial with signature validation');
 
     console.log('\n📧 EMAIL WORKFLOW:');
-    console.log('- Email notifications restricted to: tristan.v.van@vanderbilt.edu');
+    console.log(`- Email notifications restricted to: ${testEmail}`);
     console.log('- Approval links format: http://localhost:3000/signature/{id}?approver={email}&token={token}');
     console.log('- Each email contains personalized approval buttons');
 

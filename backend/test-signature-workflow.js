@@ -3,9 +3,13 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
+require('dotenv').config();
 
 async function testSignatureWorkflow() {
   console.log('🔍 Testing Signature Page Workflow\n');
+  
+  const testEmail = process.env.TEST_EMAIL || 'jacqueline.c.frist@vanderbilt.edu';
+  console.log(`Using test email: ${testEmail}`);
 
   try {
     console.log('1. Creating test application...');
@@ -22,10 +26,10 @@ async function testSignatureWorkflow() {
     formData.append('duration', '2year');
     formData.append('rationale', 'Test rationale for signature workflow testing');
     formData.append('deanName', 'Dr. Engineering Dean');
-    formData.append('deanEmail', 'tristan.v.van@vanderbilt.edu'); // Test email
+    formData.append('deanEmail', testEmail); // Test email
     formData.append('collegeHasDepartments', 'true');
     formData.append('departmentChairName', 'Dr. CS Chair');
-    formData.append('departmentChairEmail', 'tristan.v.van@vanderbilt.edu'); // Test email
+    formData.append('departmentChairEmail', testEmail); // Test email
     
     // Skip CV file for testing - we'll test the approval workflow without it
     // In production, CV file would be required
@@ -55,7 +59,7 @@ async function testSignatureWorkflow() {
     
     // Test approval submission
     const approvalData = {
-      approverEmail: 'tristan.v.van@vanderbilt.edu',
+      approverEmail: testEmail,
       action: 'approve',
       signature: 'Dr. Tristan Van',
       notes: 'Approved for testing signature workflow'
@@ -106,7 +110,7 @@ async function testSignatureWorkflow() {
     formData2.append('duration', '1year');
     formData2.append('rationale', 'Test rationale for denial testing');
     formData2.append('deanName', 'Dr. Arts Dean');
-    formData2.append('deanEmail', 'tristan.v.van@vanderbilt.edu'); // Test email
+    formData2.append('deanEmail', testEmail); // Test email
     formData2.append('collegeHasDepartments', 'true');
     
     // Skip CV file for testing
@@ -119,7 +123,7 @@ async function testSignatureWorkflow() {
 
     // Test denial
     const denialData = {
-      approverEmail: 'tristan.v.van@vanderbilt.edu',
+      approverEmail: testEmail,
       action: 'deny',
       signature: 'Dr. Tristan Van',
       notes: 'Denied for testing purposes - insufficient justification'
@@ -145,15 +149,15 @@ async function testSignatureWorkflow() {
     console.log('✅ Approval workflow functional');
     console.log('✅ Denial workflow functional');
     console.log('✅ Status updates and history tracking working');
-    console.log('✅ Email restriction to tristan.v.van@vanderbilt.edu active');
+    console.log(`✅ Email restriction to ${testEmail} active`);
 
     console.log('\n🎯 FRONTEND TESTING:');
     console.log('1. Visit: http://localhost:3000/signature/' + applicationId);
-    console.log('2. Add query params: ?approver=tristan.v.van@vanderbilt.edu&token=testtoken');
+    console.log(`2. Add query params: ?approver=${testEmail}&token=testtoken`);
     console.log('3. Test approval/denial with signature validation');
 
     console.log('\n📧 EMAIL NOTIFICATION TESTING:');
-    console.log('- Emails will only be sent to tristan.v.van@vanderbilt.edu');
+    console.log(`- Emails will only be sent to ${testEmail}`);
     console.log('- Approval links will be: http://localhost:3000/signature/{id}?approver={email}&token={token}');
     console.log('- Each email contains personalized approval links');
 

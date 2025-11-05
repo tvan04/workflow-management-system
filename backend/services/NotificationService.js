@@ -9,7 +9,7 @@ class NotificationService {
     try {
       const facultyMember = application.facultyMember;
       const applicantName = facultyMember.name;
-      const primaryAppointment = `${facultyMember.college}, ${facultyMember.department || 'No Department'}`;
+      const primaryAppointment = `${facultyMember.college}, ${facultyMember.department || ''}`;
       
       // Send confirmation to applicant
       await this.emailService.sendConfirmationEmail(
