@@ -135,6 +135,10 @@ class EmailService {
       throw new Error('Email API key not configured');
     }
 
+    if (!this.cccFacultyEmail) {
+      throw new Error('CCC Faculty Email not configured');
+    }
+
     const subject = `New Secondary Appointment Application - CCC Review Required`;
     const body = `
       <p>Dear CCC Faculty,</p>
