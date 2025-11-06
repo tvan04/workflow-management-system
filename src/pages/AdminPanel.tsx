@@ -1120,7 +1120,8 @@ const CollegeForm: React.FC<CollegeFormProps> = ({ college, onSave, onCancel }) 
         name: formData.deanName,
         email: formData.deanEmail,
         title: formData.deanTitle
-      }
+      },
+      requiredApprovers: ['dean'] // Default approver requirement
     };
 
     if (formData.seniorAssociateDeanName && formData.seniorAssociateDeanEmail) {
@@ -1297,13 +1298,15 @@ const CollegesTab: React.FC = () => {
         id: '1',
         name: 'School of Engineering',
         hasDepartments: true,
-        dean: { name: 'Dr. Patricia Williams', email: 'patricia.williams@vanderbilt.edu', title: 'Dean' }
+        dean: { name: 'Dr. Patricia Williams', email: 'patricia.williams@vanderbilt.edu', title: 'Dean' },
+        requiredApprovers: ['departmentChair', 'dean']
       },
       {
         id: '2',
         name: 'Owen Graduate School of Management',
         hasDepartments: false,
-        dean: { name: 'Dr. Eric Johnson', email: 'eric.johnson@vanderbilt.edu', title: 'Dean' }
+        dean: { name: 'Dr. Eric Johnson', email: 'eric.johnson@vanderbilt.edu', title: 'Dean' },
+        requiredApprovers: ['associateDean', 'dean']
       }
     ];
     setColleges(mockColleges);

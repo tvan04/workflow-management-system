@@ -37,6 +37,10 @@ interface FormData {
   seniorAssociateDeanName: string;
   seniorAssociateDeanEmail: string;
   
+  // VUMC-specific approvers
+  primaryChairName: string;
+  primaryChairEmail: string;
+  
   // Configuration
   collegeHasDepartments: boolean;
 }
@@ -66,6 +70,8 @@ const ApplicationForm: React.FC = () => {
     deanEmail: '',
     seniorAssociateDeanName: '',
     seniorAssociateDeanEmail: '',
+    primaryChairName: '',
+    primaryChairEmail: '',
     collegeHasDepartments: true
   });
 
@@ -81,31 +87,68 @@ const ApplicationForm: React.FC = () => {
       id: '1',
       name: 'School of Engineering',
       hasDepartments: true,
-      dean: { name: 'Dr. Patricia Williams', email: 'patricia.williams@vanderbilt.edu', title: 'Dean' }
+      dean: { name: 'Dr. Patricia Williams', email: 'patricia.williams@vanderbilt.edu', title: 'Dean' },
+      requiredApprovers: ['departmentChair', 'dean']
     },
     {
       id: '2',
       name: 'College of Arts & Science',
       hasDepartments: true,
-      dean: { name: 'Dr. John Geer', email: 'john.geer@vanderbilt.edu', title: 'Dean' }
+      dean: { name: 'Dr. John Geer', email: 'john.geer@vanderbilt.edu', title: 'Dean' },
+      associateDean: { name: 'Dr. Sarah Thompson', email: 'sarah.thompson@vanderbilt.edu', title: 'Associate Dean' },
+      requiredApprovers: ['departmentChair', 'associateDean']
     },
     {
       id: '3',
-      name: 'School of Medicine',
+      name: 'School of Medicine - Basic Sciences',
       hasDepartments: true,
-      dean: { name: 'Dr. Jennifer Davis', email: 'jennifer.davis@vumc.org', title: 'Dean' }
+      dean: { name: 'Dr. Jennifer Davis', email: 'jennifer.davis@vumc.org', title: 'Dean' },
+      requiredApprovers: ['departmentChair']
     },
     {
       id: '4',
       name: 'Owen Graduate School of Management',
       hasDepartments: false,
-      dean: { name: 'Dr. Eric Johnson', email: 'eric.johnson@vanderbilt.edu', title: 'Dean' }
+      dean: { name: 'Dr. Eric Johnson', email: 'eric.johnson@vanderbilt.edu', title: 'Dean' },
+      associateDean: { name: 'Dr. Michael Brown', email: 'michael.brown@vanderbilt.edu', title: 'Associate Dean' },
+      requiredApprovers: ['associateDean', 'dean']
     },
     {
       id: '5',
       name: 'Blair School of Music',
       hasDepartments: false,
-      dean: { name: 'Dr. Mark Wait', email: 'mark.wait@vanderbilt.edu', title: 'Dean' }
+      dean: { name: 'Dr. Mark Wait', email: 'mark.wait@vanderbilt.edu', title: 'Dean' },
+      associateDean: { name: 'Dr. Lisa Carter', email: 'lisa.carter@vanderbilt.edu', title: 'Associate Dean' },
+      requiredApprovers: ['associateDean', 'dean']
+    },
+    {
+      id: '6',
+      name: 'Peabody College',
+      hasDepartments: true,
+      dean: { name: 'Dr. Jennifer Wilson', email: 'jennifer.wilson@vanderbilt.edu', title: 'Dean' },
+      requiredApprovers: ['departmentChair', 'dean']
+    },
+    {
+      id: '7',
+      name: 'Law School',
+      hasDepartments: false,
+      dean: { name: 'Dr. Christopher Guthrie', email: 'christopher.guthrie@vanderbilt.edu', title: 'Dean' },
+      viceDean: { name: 'Dr. Rebecca Brown', email: 'rebecca.brown@vanderbilt.edu', title: 'Vice Dean' },
+      requiredApprovers: ['viceDean']
+    },
+    {
+      id: '8',
+      name: 'Divinity School',
+      hasDepartments: false,
+      dean: { name: 'Dr. Emilie Townes', email: 'emilie.townes@vanderbilt.edu', title: 'Dean' },
+      requiredApprovers: ['dean']
+    },
+    {
+      id: '9',
+      name: 'School of Nursing',
+      hasDepartments: false,
+      dean: { name: 'Dr. Linda Norman', email: 'linda.norman@vanderbilt.edu', title: 'Dean' },
+      requiredApprovers: ['dean']
     }
   ];
 
@@ -117,17 +160,78 @@ const ApplicationForm: React.FC = () => {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
 
+    // Handle institution change
+    if (field === 'institution') {
+      if (value === 'vumc') {
+        // Clear college and set up VUMC-specific fields
+        setFormData(prev => ({
+          ...prev,
+          college: '',
+          collegeHasDepartments: false,
+          // Clear all other approver fields
+          departmentChairName: '',
+          departmentChairEmail: '',
+          deanName: '',
+          deanEmail: '',
+          seniorAssociateDeanName: '',
+          seniorAssociateDeanEmail: '',
+          primaryChairName: '',
+          primaryChairEmail: '',
+          divisionChairName: '',
+          divisionChairEmail: ''
+        }));
+        setApprovalChainLoaded(true);
+      } else {
+        // Reset approval chain for Vanderbilt selection
+        setApprovalChainLoaded(false);
+      }
+    }
+
     // Auto-populate approval chain when college is selected
     if (field === 'college') {
       const selectedCollege = colleges.find(c => c.name === value);
       if (selectedCollege) {
+        const newFormData: Partial<FormData> = {
+          collegeHasDepartments: selectedCollege.hasDepartments,
+          // Clear department if college doesn't have departments
+          department: selectedCollege.hasDepartments ? formData.department : '',
+          // Clear all approver fields first
+          departmentChairName: '',
+          departmentChairEmail: '',
+          deanName: '',
+          deanEmail: '',
+          seniorAssociateDeanName: '',
+          seniorAssociateDeanEmail: ''
+        };
+
+        // Populate required approver fields based on college requirements
+        selectedCollege.requiredApprovers.forEach(approver => {
+          switch (approver) {
+            case 'departmentChair':
+              // These will be filled when department is selected
+              break;
+            case 'dean':
+              newFormData.deanName = selectedCollege.dean.name;
+              newFormData.deanEmail = selectedCollege.dean.email;
+              break;
+            case 'associateDean':
+              if (selectedCollege.associateDean) {
+                newFormData.seniorAssociateDeanName = selectedCollege.associateDean.name;
+                newFormData.seniorAssociateDeanEmail = selectedCollege.associateDean.email;
+              }
+              break;
+            case 'viceDean':
+              if (selectedCollege.viceDean) {
+                newFormData.deanName = selectedCollege.viceDean.name;
+                newFormData.deanEmail = selectedCollege.viceDean.email;
+              }
+              break;
+          }
+        });
+
         setFormData(prev => ({
           ...prev,
-          collegeHasDepartments: selectedCollege.hasDepartments,
-          deanName: selectedCollege.dean.name,
-          deanEmail: selectedCollege.dean.email,
-          // Clear department if college doesn't have departments or isn't Engineering/Arts & Science
-          department: (selectedCollege.name === 'School of Engineering' || selectedCollege.name === 'College of Arts & Science') ? prev.department : ''
+          ...newFormData
         }));
         setApprovalChainLoaded(true);
       }
@@ -151,13 +255,17 @@ const ApplicationForm: React.FC = () => {
     }
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     
-    // Department is only required for Engineering and Arts & Science
-    const requiresDepartment = formData.college === 'School of Engineering' || formData.college === 'College of Arts & Science';
-    if (requiresDepartment && !formData.department.trim()) {
-      newErrors.department = 'Department is required';
+    // College and department validation depends on institution
+    if (formData.institution === 'vanderbilt') {
+      if (!formData.college.trim()) newErrors.college = 'College is required';
+      
+      // Department is required for colleges that have departments
+      const selectedCollege = colleges.find(c => c.name === formData.college);
+      const requiresDepartment = selectedCollege?.hasDepartments || false;
+      if (requiresDepartment && !formData.department.trim()) {
+        newErrors.department = 'Department is required';
+      }
     }
-    
-    if (!formData.college.trim()) newErrors.college = 'College is required';
     if (!formData.appointmentType.trim()) newErrors.appointmentType = 'Appointment type is required';
     if (!formData.duration.trim()) newErrors.duration = 'Duration is required';
     if (!formData.rationale.trim()) newErrors.rationale = 'Rationale is required';
@@ -165,22 +273,57 @@ const ApplicationForm: React.FC = () => {
 
 
     // Approval chain validation
-    if (formData.collegeHasDepartments) {
-      if (!formData.departmentChairName.trim()) {
-        newErrors.departmentChairName = 'Department Chair name is required';
+    if (formData.institution === 'vumc') {
+      // VUMC validation: Primary Chair required, Division Leader optional
+      if (!formData.primaryChairName.trim()) {
+        newErrors.primaryChairName = 'Primary Chair name is required';
       }
-      if (!formData.departmentChairEmail.trim()) {
-        newErrors.departmentChairEmail = 'Department Chair email is required';
-      } else if (!validateEmail(formData.departmentChairEmail)) {
-        newErrors.departmentChairEmail = 'Must be a valid Vanderbilt or VUMC email';
+      if (!formData.primaryChairEmail.trim()) {
+        newErrors.primaryChairEmail = 'Primary Chair email is required';
+      } else if (!validateEmail(formData.primaryChairEmail)) {
+        newErrors.primaryChairEmail = 'Must be a valid Vanderbilt or VUMC email';
+      }
+      
+      // Division Leader is optional, but if provided, must be valid
+      if (formData.divisionChairEmail.trim() && !validateEmail(formData.divisionChairEmail)) {
+        newErrors.divisionChairEmail = 'Must be a valid Vanderbilt or VUMC email';
+      }
+    } else {
+      // Vanderbilt validation based on college requirements
+      const selectedCollege = colleges.find(c => c.name === formData.college);
+      const requiredApprovers = selectedCollege?.requiredApprovers || [];
+
+      if (requiredApprovers.includes('departmentChair')) {
+        if (!formData.departmentChairName.trim()) {
+          newErrors.departmentChairName = 'Department Chair name is required';
+        }
+        if (!formData.departmentChairEmail.trim()) {
+          newErrors.departmentChairEmail = 'Department Chair email is required';
+        } else if (!validateEmail(formData.departmentChairEmail)) {
+          newErrors.departmentChairEmail = 'Must be a valid Vanderbilt or VUMC email';
+        }
+      }
+
+      if (requiredApprovers.includes('dean') || requiredApprovers.includes('viceDean')) {
+        const fieldLabel = requiredApprovers.includes('viceDean') ? 'Vice Dean' : 'Dean';
+        if (!formData.deanName.trim()) newErrors.deanName = `${fieldLabel} name is required`;
+        if (!formData.deanEmail.trim()) newErrors.deanEmail = `${fieldLabel} email is required`;
+        else if (!validateEmail(formData.deanEmail)) {
+          newErrors.deanEmail = 'Must be a valid Vanderbilt or VUMC email';
+        }
+      }
+
+      if (requiredApprovers.includes('associateDean')) {
+        if (!formData.seniorAssociateDeanName.trim()) {
+          newErrors.seniorAssociateDeanName = 'Associate Dean name is required';
+        }
+        if (!formData.seniorAssociateDeanEmail.trim()) {
+          newErrors.seniorAssociateDeanEmail = 'Associate Dean email is required';
+        } else if (!validateEmail(formData.seniorAssociateDeanEmail)) {
+          newErrors.seniorAssociateDeanEmail = 'Must be a valid Vanderbilt or VUMC email';
+        }
       }
     }
-
-    if (!formData.deanName.trim()) newErrors.deanName = 'Dean name is required';
-    if (!formData.deanEmail.trim()) newErrors.deanEmail = 'Dean email is required';
-    // else if (!validateEmail(formData.deanEmail)) {
-    //   newErrors.deanEmail = 'Must be a valid Vanderbilt or VUMC email';
-    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -251,6 +394,8 @@ const ApplicationForm: React.FC = () => {
         deanEmail: '',
         seniorAssociateDeanName: '',
         seniorAssociateDeanEmail: '',
+        primaryChairName: '',
+        primaryChairEmail: '',
         collegeHasDepartments: true
       });
     } catch (error) {
@@ -377,29 +522,32 @@ const ApplicationForm: React.FC = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Primary College *
-              </label>
-              <select
-                value={formData.college}
-                onChange={(e) => handleInputChange('college', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.college ? 'border-red-300' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select College</option>
-                {colleges.map((college) => (
-                  <option key={college.id} value={college.name}>
-                    {college.name}
-                  </option>
-                ))}
-              </select>
-              {errors.college && <p className="mt-1 text-sm text-red-600">{errors.college}</p>}
-            </div>
+            {/* Only show Primary College field for Vanderbilt University */}
+            {formData.institution === 'vanderbilt' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Primary College *
+                </label>
+                <select
+                  value={formData.college}
+                  onChange={(e) => handleInputChange('college', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                    errors.college ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select College</option>
+                  {colleges.map((college) => (
+                    <option key={college.id} value={college.name}>
+                      {college.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.college && <p className="mt-1 text-sm text-red-600">{errors.college}</p>}
+              </div>
+            )}
 
-            {/* Department field - only show for Engineering and Arts & Science */}
-            {(formData.college === 'School of Engineering' || formData.college === 'College of Arts & Science') && (
+            {/* Department field - show for colleges that have departments */}
+            {colleges.find(c => c.name === formData.college)?.hasDepartments && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Primary Department *
@@ -495,9 +643,23 @@ const ApplicationForm: React.FC = () => {
                 <div className="text-sm text-blue-700">
                   <p className="font-medium mb-1">Approval Process Information</p>
                   <p>
-                    {formData.collegeHasDepartments 
-                      ? "Your application will require approval from your department chair and college dean."
-                      : "Your college does not have departments, so your application will go directly to the dean."
+                    {formData.institution === 'vumc' 
+                      ? "VUMC applications require Primary Chair approval. Division Leader approval is required if applicable."
+                      : (() => {
+                          const selectedCollege = colleges.find(c => c.name === formData.college);
+                          const requiredApprovers = selectedCollege?.requiredApprovers || [];
+                          return `Your application will require approval from: ${
+                            requiredApprovers.map(approver => {
+                              switch (approver) {
+                                case 'departmentChair': return 'Department Chair';
+                                case 'associateDean': return 'Associate Dean';
+                                case 'viceDean': return 'Vice Dean';
+                                case 'dean': return 'Dean';
+                                default: return approver;
+                              }
+                            }).join(', ')
+                          }.`;
+                        })()
                     }
                   </p>
                 </div>
@@ -505,75 +667,195 @@ const ApplicationForm: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {formData.collegeHasDepartments && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Department Chair Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.departmentChairName}
-                      onChange={(e) => handleInputChange('departmentChairName', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                        errors.departmentChairName ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="Dr. Robert Chen"
-                    />
-                    {errors.departmentChairName && <p className="mt-1 text-sm text-red-600">{errors.departmentChairName}</p>}
+              {formData.institution === 'vumc' ? (
+                // VUMC-specific approval fields
+                <>
+                  {/* Primary Chair (Required for VUMC) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Primary Chair Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.primaryChairName}
+                        onChange={(e) => handleInputChange('primaryChairName', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                          errors.primaryChairName ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="Dr. John Smith"
+                      />
+                      {errors.primaryChairName && <p className="mt-1 text-sm text-red-600">{errors.primaryChairName}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Primary Chair Email *
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.primaryChairEmail}
+                        onChange={(e) => handleInputChange('primaryChairEmail', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                          errors.primaryChairEmail ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="john.smith@vumc.org"
+                      />
+                      {errors.primaryChairEmail && <p className="mt-1 text-sm text-red-600">{errors.primaryChairEmail}</p>}
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Department Chair Email *
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.departmentChairEmail}
-                      onChange={(e) => handleInputChange('departmentChairEmail', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                        errors.departmentChairEmail ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="robert.chen@vanderbilt.edu"
-                    />
-                    {errors.departmentChairEmail && <p className="mt-1 text-sm text-red-600">{errors.departmentChairEmail}</p>}
+                  {/* Division Leader (Optional for VUMC) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Division Leader Name <span className="text-gray-500">(If Applicable)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.divisionChairName}
+                        onChange={(e) => handleInputChange('divisionChairName', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Dr. Jane Doe"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Division Leader Email <span className="text-gray-500">(If Applicable)</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.divisionChairEmail}
+                        onChange={(e) => handleInputChange('divisionChairEmail', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                          errors.divisionChairEmail ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="jane.doe@vumc.org"
+                      />
+                      {errors.divisionChairEmail && <p className="mt-1 text-sm text-red-600">{errors.divisionChairEmail}</p>}
+                    </div>
                   </div>
-                </div>
+                </>
+              ) : (
+                // Vanderbilt-specific approval fields
+                (() => {
+                  const selectedCollege = colleges.find(c => c.name === formData.college);
+                  const requiredApprovers = selectedCollege?.requiredApprovers || [];
+                  
+                  return (
+                    <>
+                      {requiredApprovers.includes('departmentChair') && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Department Chair Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.departmentChairName}
+                              onChange={(e) => handleInputChange('departmentChairName', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.departmentChairName ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="Dr. Robert Chen"
+                            />
+                            {errors.departmentChairName && <p className="mt-1 text-sm text-red-600">{errors.departmentChairName}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Department Chair Email *
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.departmentChairEmail}
+                              onChange={(e) => handleInputChange('departmentChairEmail', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.departmentChairEmail ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="robert.chen@vanderbilt.edu"
+                            />
+                            {errors.departmentChairEmail && <p className="mt-1 text-sm text-red-600">{errors.departmentChairEmail}</p>}
+                          </div>
+                        </div>
+                      )}
+
+                      {(requiredApprovers.includes('dean') || requiredApprovers.includes('viceDean')) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {requiredApprovers.includes('viceDean') ? 'Vice Dean Name *' : 'Dean Name *'}
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.deanName}
+                              onChange={(e) => handleInputChange('deanName', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.deanName ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="Dr. Patricia Williams"
+                            />
+                            {errors.deanName && <p className="mt-1 text-sm text-red-600">{errors.deanName}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {requiredApprovers.includes('viceDean') ? 'Vice Dean Email *' : 'Dean Email *'}
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.deanEmail}
+                              onChange={(e) => handleInputChange('deanEmail', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.deanEmail ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="patricia.williams@vanderbilt.edu"
+                            />
+                            {errors.deanEmail && <p className="mt-1 text-sm text-red-600">{errors.deanEmail}</p>}
+                          </div>
+                        </div>
+                      )}
+
+                      {requiredApprovers.includes('associateDean') && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Associate Dean Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.seniorAssociateDeanName}
+                              onChange={(e) => handleInputChange('seniorAssociateDeanName', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.seniorAssociateDeanName ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="Dr. Sarah Thompson"
+                            />
+                            {errors.seniorAssociateDeanName && <p className="mt-1 text-sm text-red-600">{errors.seniorAssociateDeanName}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Associate Dean Email *
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.seniorAssociateDeanEmail}
+                              onChange={(e) => handleInputChange('seniorAssociateDeanEmail', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.seniorAssociateDeanEmail ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="sarah.thompson@vanderbilt.edu"
+                            />
+                            {errors.seniorAssociateDeanEmail && <p className="mt-1 text-sm text-red-600">{errors.seniorAssociateDeanEmail}</p>}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
               )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dean Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.deanName}
-                    onChange={(e) => handleInputChange('deanName', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                      errors.deanName ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Dr. Patricia Williams"
-                  />
-                  {errors.deanName && <p className="mt-1 text-sm text-red-600">{errors.deanName}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dean Email *
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.deanEmail}
-                    onChange={(e) => handleInputChange('deanEmail', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                      errors.deanEmail ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="patricia.williams@vanderbilt.edu"
-                  />
-                  {errors.deanEmail && <p className="mt-1 text-sm text-red-600">{errors.deanEmail}</p>}
-                </div>
-              </div>
             </div>
           </div>
         )}

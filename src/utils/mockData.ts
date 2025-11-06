@@ -11,7 +11,7 @@ export const mockColleges: College[] = [
       email: 'patricia.williams@vanderbilt.edu',
       title: 'Dean'
     },
-    departments: [
+departments: [
       {
         id: '1',
         name: 'Computer Science',
@@ -30,7 +30,8 @@ export const mockColleges: College[] = [
           title: 'Department Chair'
         }
       }
-    ]
+    ],
+    requiredApprovers: ['departmentChair', 'dean']
   },
   {
     id: '2',
@@ -40,7 +41,8 @@ export const mockColleges: College[] = [
       name: 'Dr. Jennifer Davis',
       email: 'jennifer.davis@vumc.org',
       title: 'Dean'
-    }
+    },
+    requiredApprovers: ['departmentChair']
   },
   {
     id: '3',
@@ -50,7 +52,8 @@ export const mockColleges: College[] = [
       name: 'Dr. Eric Johnson',
       email: 'eric.johnson@vanderbilt.edu',
       title: 'Dean'
-    }
+    },
+    requiredApprovers: ['associateDean', 'dean']
   },
   {
     id: '4',
@@ -60,7 +63,8 @@ export const mockColleges: College[] = [
       name: 'Dr. Mark Wait',
       email: 'mark.wait@vanderbilt.edu',
       title: 'Dean'
-    }
+    },
+    requiredApprovers: ['associateDean', 'dean']
   },
   {
     id: '5',
@@ -70,7 +74,8 @@ export const mockColleges: College[] = [
       name: 'Dr. Susan Miller',
       email: 'susan.miller@vanderbilt.edu',
       title: 'Dean'
-    }
+    },
+    requiredApprovers: ['dean']
   },
   {
     id: '6',
@@ -80,7 +85,8 @@ export const mockColleges: College[] = [
       name: 'Dr. Michael Thompson',
       email: 'michael.thompson@vanderbilt.edu',
       title: 'Dean'
-    }
+    },
+    requiredApprovers: ['dean']
   }
 ];
 

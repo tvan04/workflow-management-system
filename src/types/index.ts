@@ -97,6 +97,9 @@ export interface College {
   departments?: Department[];
   dean: ContactInfo;
   seniorAssociateDean?: ContactInfo;
+  associateDean?: ContactInfo;
+  viceDean?: ContactInfo;
+  requiredApprovers: ('departmentChair' | 'associateDean' | 'viceDean' | 'dean')[];
 }
 
 export interface Department {
