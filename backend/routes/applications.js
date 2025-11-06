@@ -409,7 +409,8 @@ router.post('/:id/approve', [
 
     // Send notification about status change
     try {
-      await NotificationService.sendStatusChangeNotification(application, newStatus);
+      const notificationService = new NotificationService();
+      await notificationService.sendStatusChangeNotification(application, newStatus);
     } catch (notificationError) {
       console.error('Failed to send notification:', notificationError);
       // Don't fail the request if notification fails

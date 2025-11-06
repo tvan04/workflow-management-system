@@ -5,34 +5,34 @@ const db = require('../config/database');
 class Application {
   constructor(data = {}) {
     this.id = data.id || `APP-${moment().format('YYYY')}-${uuidv4().substring(0, 8).toUpperCase()}`;
-    this.facultyMemberId = data.facultyMemberId;
+    this.facultyMemberId = data.facultyMemberId || data.faculty_member_id;
     this.status = data.status || 'ccc_review';
-    this.appointmentType = data.appointmentType;
-    this.effectiveDate = data.effectiveDate;
+    this.appointmentType = data.appointmentType || data.appointment_type;
+    this.effectiveDate = data.effectiveDate || data.effective_date;
     this.duration = data.duration;
     this.rationale = data.rationale;
-    this.cvFilePath = data.cvFilePath;
-    this.cvFileName = data.cvFileName;
+    this.cvFilePath = data.cvFilePath || data.cv_file_path;
+    this.cvFileName = data.cvFileName || data.cv_file_name;
     
-    // Approval chain
-    this.departmentChairName = data.departmentChairName;
-    this.departmentChairEmail = data.departmentChairEmail;
-    this.divisionChairName = data.divisionChairName;
-    this.divisionChairEmail = data.divisionChairEmail;
-    this.deanName = data.deanName;
-    this.deanEmail = data.deanEmail;
-    this.seniorAssociateDeanName = data.seniorAssociateDeanName;
-    this.seniorAssociateDeanEmail = data.seniorAssociateDeanEmail;
-    this.hasDepartments = data.hasDepartments !== undefined ? data.hasDepartments : true;
+    // Approval chain - support both camelCase and snake_case
+    this.departmentChairName = data.departmentChairName || data.department_chair_name;
+    this.departmentChairEmail = data.departmentChairEmail || data.department_chair_email;
+    this.divisionChairName = data.divisionChairName || data.division_chair_name;
+    this.divisionChairEmail = data.divisionChairEmail || data.division_chair_email;
+    this.deanName = data.deanName || data.dean_name;
+    this.deanEmail = data.deanEmail || data.dean_email;
+    this.seniorAssociateDeanName = data.seniorAssociateDeanName || data.senior_associate_dean_name;
+    this.seniorAssociateDeanEmail = data.seniorAssociateDeanEmail || data.senior_associate_dean_email;
+    this.hasDepartments = data.hasDepartments !== undefined ? data.hasDepartments : (data.has_departments !== undefined ? data.has_departments : true);
     
-    // Tracking fields
-    this.submittedAt = data.submittedAt || new Date();
-    this.updatedAt = data.updatedAt || new Date();
-    this.currentApprover = data.currentApprover;
-    this.fisEntered = data.fisEntered || false;
-    this.fisEntryDate = data.fisEntryDate;
-    this.processingTimeWeeks = data.processingTimeWeeks;
-    this.primaryAppointmentEndDate = data.primaryAppointmentEndDate;
+    // Tracking fields - support both camelCase and snake_case
+    this.submittedAt = data.submittedAt || data.submitted_at || new Date();
+    this.updatedAt = data.updatedAt || data.updated_at || new Date();
+    this.currentApprover = data.currentApprover || data.current_approver;
+    this.fisEntered = data.fisEntered || data.fis_entered || false;
+    this.fisEntryDate = data.fisEntryDate || data.fis_entry_date;
+    this.processingTimeWeeks = data.processingTimeWeeks || data.processing_time_weeks;
+    this.primaryAppointmentEndDate = data.primaryAppointmentEndDate || data.primary_appointment_end_date;
   }
 
   async save() {

@@ -26,18 +26,7 @@ class NotificationService {
         primaryAppointment
       );
       
-      // Get approver emails and send approval notifications
-      const approverEmails = this.emailService.getApproverEmails(application);
-      if (approverEmails.length > 0) {
-        await this.emailService.sendApprovalNotification(
-          approverEmails,
-          applicantName,
-          application.id,
-          primaryAppointment
-        );
-      }
-      
-      console.log('✅ All application submitted notifications sent');
+      console.log('✅ Application submitted notifications sent (approver emails will be sent when status changes to Primary Approval)');
     } catch (error) {
       console.error('❌ Failed to send application submitted notifications:', error.message);
       // Don't throw - we don't want to block application submission
@@ -55,6 +44,7 @@ class NotificationService {
       
       // If status moved to awaiting approval, send new approval notifications
       if (newStatus === 'awaiting_primary_approval') {
+        console.log(`📧 Status changed to Primary Approval - sending approver notifications for ${application.id}`);
         const primaryAppointment = `${facultyMember.college}, ${facultyMember.department || 'No Department'}`;
         const approverEmails = this.emailService.getApproverEmails(application);
         
@@ -65,6 +55,9 @@ class NotificationService {
             application.id,
             primaryAppointment
           );
+          console.log(`✅ Approver notifications sent to ${approverEmails.length} recipients for ${application.id}`);
+        } else {
+          console.log(`⚠️ No approver emails found for application ${application.id}`);
         }
       }
       
