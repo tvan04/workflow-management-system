@@ -1182,7 +1182,7 @@ const CollegeForm: React.FC<CollegeFormProps> = ({ college, onSave, onCancel }) 
             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
               errors.deanName ? 'border-red-300' : 'border-gray-300'
             }`}
-            placeholder="Dr. Jane Smith"
+            placeholder="Dr. Dean"
           />
           {errors.deanName && <p className="mt-1 text-sm text-red-600">{errors.deanName}</p>}
         </div>

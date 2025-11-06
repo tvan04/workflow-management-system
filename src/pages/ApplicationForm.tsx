@@ -204,30 +204,7 @@ const ApplicationForm: React.FC = () => {
           seniorAssociateDeanEmail: ''
         };
 
-        // Populate required approver fields based on college requirements
-        selectedCollege.requiredApprovers.forEach(approver => {
-          switch (approver) {
-            case 'departmentChair':
-              // These will be filled when department is selected
-              break;
-            case 'dean':
-              newFormData.deanName = selectedCollege.dean.name;
-              newFormData.deanEmail = selectedCollege.dean.email;
-              break;
-            case 'associateDean':
-              if (selectedCollege.associateDean) {
-                newFormData.seniorAssociateDeanName = selectedCollege.associateDean.name;
-                newFormData.seniorAssociateDeanEmail = selectedCollege.associateDean.email;
-              }
-              break;
-            case 'viceDean':
-              if (selectedCollege.viceDean) {
-                newFormData.deanName = selectedCollege.viceDean.name;
-                newFormData.deanEmail = selectedCollege.viceDean.email;
-              }
-              break;
-          }
-        });
+        // Required approver fields will be filled manually by applicants
 
         setFormData(prev => ({
           ...prev,
@@ -471,7 +448,7 @@ const ApplicationForm: React.FC = () => {
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                   errors.name ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Dr. Jane Smith"
+                placeholder="Applicant Name"
               />
               {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
@@ -487,7 +464,7 @@ const ApplicationForm: React.FC = () => {
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                   errors.email ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="jane.smith@vanderbilt.edu"
+                placeholder="applicant@vanderbilt.edu"
               />
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
@@ -683,7 +660,7 @@ const ApplicationForm: React.FC = () => {
                         className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                           errors.primaryChairName ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        placeholder="Dr. John Smith"
+                        placeholder="Primary Chair Name"
                       />
                       {errors.primaryChairName && <p className="mt-1 text-sm text-red-600">{errors.primaryChairName}</p>}
                     </div>
@@ -699,7 +676,7 @@ const ApplicationForm: React.FC = () => {
                         className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                           errors.primaryChairEmail ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        placeholder="john.smith@vumc.org"
+                        placeholder="Primary Chair Email"
                       />
                       {errors.primaryChairEmail && <p className="mt-1 text-sm text-red-600">{errors.primaryChairEmail}</p>}
                     </div>
@@ -716,7 +693,7 @@ const ApplicationForm: React.FC = () => {
                         value={formData.divisionChairName}
                         onChange={(e) => handleInputChange('divisionChairName', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Dr. Jane Doe"
+                        placeholder="Division Leader Name"
                       />
                     </div>
 
@@ -731,7 +708,7 @@ const ApplicationForm: React.FC = () => {
                         className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                           errors.divisionChairEmail ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        placeholder="jane.doe@vumc.org"
+                        placeholder="Division Leader Email"
                       />
                       {errors.divisionChairEmail && <p className="mt-1 text-sm text-red-600">{errors.divisionChairEmail}</p>}
                     </div>
@@ -758,7 +735,7 @@ const ApplicationForm: React.FC = () => {
                               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                                 errors.departmentChairName ? 'border-red-300' : 'border-gray-300'
                               }`}
-                              placeholder="Dr. Robert Chen"
+                              placeholder="Department Chair Name"
                             />
                             {errors.departmentChairName && <p className="mt-1 text-sm text-red-600">{errors.departmentChairName}</p>}
                           </div>
@@ -774,7 +751,7 @@ const ApplicationForm: React.FC = () => {
                               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                                 errors.departmentChairEmail ? 'border-red-300' : 'border-gray-300'
                               }`}
-                              placeholder="robert.chen@vanderbilt.edu"
+                              placeholder="Department Chair Email"
                             />
                             {errors.departmentChairEmail && <p className="mt-1 text-sm text-red-600">{errors.departmentChairEmail}</p>}
                           </div>
@@ -794,7 +771,7 @@ const ApplicationForm: React.FC = () => {
                               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                                 errors.deanName ? 'border-red-300' : 'border-gray-300'
                               }`}
-                              placeholder="Dr. Patricia Williams"
+                              placeholder="Dean Name"
                             />
                             {errors.deanName && <p className="mt-1 text-sm text-red-600">{errors.deanName}</p>}
                           </div>
@@ -810,7 +787,7 @@ const ApplicationForm: React.FC = () => {
                               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                                 errors.deanEmail ? 'border-red-300' : 'border-gray-300'
                               }`}
-                              placeholder="patricia.williams@vanderbilt.edu"
+                              placeholder="Dean Email"
                             />
                             {errors.deanEmail && <p className="mt-1 text-sm text-red-600">{errors.deanEmail}</p>}
                           </div>
@@ -830,7 +807,7 @@ const ApplicationForm: React.FC = () => {
                               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                                 errors.seniorAssociateDeanName ? 'border-red-300' : 'border-gray-300'
                               }`}
-                              placeholder="Dr. Sarah Thompson"
+                              placeholder="Associate Dean Name"
                             />
                             {errors.seniorAssociateDeanName && <p className="mt-1 text-sm text-red-600">{errors.seniorAssociateDeanName}</p>}
                           </div>
@@ -846,7 +823,7 @@ const ApplicationForm: React.FC = () => {
                               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
                                 errors.seniorAssociateDeanEmail ? 'border-red-300' : 'border-gray-300'
                               }`}
-                              placeholder="sarah.thompson@vanderbilt.edu"
+                              placeholder="Associate Dean Email"
                             />
                             {errors.seniorAssociateDeanEmail && <p className="mt-1 text-sm text-red-600">{errors.seniorAssociateDeanEmail}</p>}
                           </div>
