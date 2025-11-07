@@ -21,9 +21,9 @@ interface FormData {
   
   // Application Details
   appointmentType: 'initial' | 'secondary' | '';
-  effectiveDate: string;
-  duration: '1year' | '2year' | '3year' | '';
-  rationale: string;
+  contributionsQuestion: string;
+  alignmentQuestion: string;
+  enhancementQuestion: string;
   cvFile: File | null;
   
   
@@ -58,9 +58,9 @@ const ApplicationForm: React.FC = () => {
     college: '',
     institution: 'vanderbilt',
     appointmentType: '',
-    effectiveDate: '',
-    duration: '',
-    rationale: '',
+    contributionsQuestion: '',
+    alignmentQuestion: '',
+    enhancementQuestion: '',
     cvFile: null,
     departmentChairName: '',
     departmentChairEmail: '',
@@ -244,8 +244,9 @@ const ApplicationForm: React.FC = () => {
       }
     }
     if (!formData.appointmentType.trim()) newErrors.appointmentType = 'Appointment type is required';
-    if (!formData.duration.trim()) newErrors.duration = 'Duration is required';
-    if (!formData.rationale.trim()) newErrors.rationale = 'Rationale is required';
+    if (!formData.contributionsQuestion.trim()) newErrors.contributionsQuestion = 'This question is required';
+    if (!formData.alignmentQuestion.trim()) newErrors.alignmentQuestion = 'This question is required';
+    if (!formData.enhancementQuestion.trim()) newErrors.enhancementQuestion = 'This question is required';
     if (!formData.cvFile) newErrors.cvFile = 'CV is required';
 
 
@@ -324,9 +325,9 @@ const ApplicationForm: React.FC = () => {
       formDataToSubmit.append('department', formData.department);
       formDataToSubmit.append('college', formData.college);
       formDataToSubmit.append('appointmentType', formData.appointmentType);
-      formDataToSubmit.append('effectiveDate', formData.effectiveDate);
-      formDataToSubmit.append('duration', formData.duration);
-      formDataToSubmit.append('rationale', formData.rationale);
+      formDataToSubmit.append('contributionsQuestion', formData.contributionsQuestion);
+      formDataToSubmit.append('alignmentQuestion', formData.alignmentQuestion);
+      formDataToSubmit.append('enhancementQuestion', formData.enhancementQuestion);
       
       // Add approval chain fields
       formDataToSubmit.append('departmentChairName', formData.departmentChairName);
@@ -359,9 +360,9 @@ const ApplicationForm: React.FC = () => {
         college: '',
         institution: 'vanderbilt',
         appointmentType: '',
-        effectiveDate: '',
-        duration: '',
-        rationale: '',
+        contributionsQuestion: '',
+        alignmentQuestion: '',
+        enhancementQuestion: '',
         cvFile: null,
         departmentChairName: '',
         departmentChairEmail: '',
@@ -551,7 +552,7 @@ const ApplicationForm: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">Appointment Details</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Appointment Type *
@@ -568,40 +569,6 @@ const ApplicationForm: React.FC = () => {
                 <option value="secondary">Secondary Reappointment</option>
               </select>
               {errors.appointmentType && <p className="mt-1 text-sm text-red-600">{errors.appointmentType}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Effective Date
-              </label>
-              <input
-                type="date"
-                value={formData.effectiveDate}
-                onChange={(e) => handleInputChange('effectiveDate', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.effectiveDate ? 'border-red-300' : 'border-gray-300'
-                }`}
-              />
-              {errors.effectiveDate && <p className="mt-1 text-sm text-red-600">{errors.effectiveDate}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Duration *
-              </label>
-              <select
-                value={formData.duration}
-                onChange={(e) => handleInputChange('duration', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.duration ? 'border-red-300' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select Duration</option>
-                <option value="1year">1 Year</option>
-                <option value="2year">2 Years</option>
-                <option value="3year">3 Years</option>
-              </select>
-              {errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration}</p>}
             </div>
           </div>
         </div>
@@ -847,21 +814,50 @@ const ApplicationForm: React.FC = () => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rationale for Secondary Appointment *
+                What specific contributions do you expect to make to the College of Connected Computing through this secondary appointment? *
               </label>
               <textarea
-                value={formData.rationale}
-                onChange={(e) => handleInputChange('rationale', e.target.value)}
-                rows={6}
+                value={formData.contributionsQuestion}
+                onChange={(e) => handleInputChange('contributionsQuestion', e.target.value)}
+                rows={4}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.rationale ? 'border-red-300' : 'border-gray-300'
+                  errors.contributionsQuestion ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Please describe how this secondary appointment aligns with CCC's mission and your research interests..."
+                placeholder="Describe the specific contributions you plan to make to CCC..."
               />
-              {errors.rationale && <p className="mt-1 text-sm text-red-600">{errors.rationale}</p>}
-              <p className="mt-1 text-sm text-gray-500">
-                Describe how this appointment will contribute to your research, teaching, or service activities within CCC.
-              </p>
+              {errors.contributionsQuestion && <p className="mt-1 text-sm text-red-600">{errors.contributionsQuestion}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                How does your research, teaching, or service align with the interdisciplinary mission of the College of Connected Computing? *
+              </label>
+              <textarea
+                value={formData.alignmentQuestion}
+                onChange={(e) => handleInputChange('alignmentQuestion', e.target.value)}
+                rows={4}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.alignmentQuestion ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Explain how your work aligns with CCC's interdisciplinary mission..."
+              />
+              {errors.alignmentQuestion && <p className="mt-1 text-sm text-red-600">{errors.alignmentQuestion}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                How will this secondary appointment enhance your primary academic work and create a synergy between your primary school and the College of Connected Computing? *
+              </label>
+              <textarea
+                value={formData.enhancementQuestion}
+                onChange={(e) => handleInputChange('enhancementQuestion', e.target.value)}
+                rows={4}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.enhancementQuestion ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Describe how this appointment will enhance your work and benefit both departments..."
+              />
+              {errors.enhancementQuestion && <p className="mt-1 text-sm text-red-600">{errors.enhancementQuestion}</p>}
             </div>
 
             <div>
