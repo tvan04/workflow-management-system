@@ -7,9 +7,9 @@ const RoleBasedRedirect: React.FC = () => {
   
   // Redirect based on user role
   if (isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/admin-dashboard" replace />;
   } else {
-    return <Navigate to="/apply" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 };
 

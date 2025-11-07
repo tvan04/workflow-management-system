@@ -67,6 +67,11 @@ export const applicationApi = {
     return apiRequest(`/applications/search?q=${encodeURIComponent(query)}`);
   },
 
+  // Get applications by user email
+  getByEmail: async (email: string): Promise<ApiResponse<any[]>> => {
+    return apiRequest(`/applications/my-applications?email=${encodeURIComponent(email)}`);
+  },
+
   // Get all applications (for dashboard)
   getAll: async (filters?: any): Promise<ApiResponse<any[]>> => {
     const queryParams = filters ? `?${new URLSearchParams(filters).toString()}` : '';

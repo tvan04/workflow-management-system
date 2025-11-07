@@ -50,10 +50,10 @@ const Login: React.FC = () => {
 
   const fillTestCredentials = (type: 'admin' | 'user') => {
     if (type === 'admin') {
-      setEmail('jacqueline.c.frist@vanderbilt.edu');
+      setEmail('admin@vanderbilt.edu');
       setPassword('admin');
     } else {
-      setEmail('test.user@vanderbilt.edu');
+      setEmail('jacqueline.c.frist@vanderbilt.edu');
       setPassword('user123');
     }
     setError('');

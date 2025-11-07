@@ -9,7 +9,6 @@ import {
   Calendar,
   User,
   Building2,
-  ArrowRight,
   Download
 } from 'lucide-react';
 import { Application, ApplicationStatus as AppStatus, StatusHistoryItem } from '../types';
@@ -396,7 +395,7 @@ const ApplicationStatus: React.FC = () => {
               </div>
               <div className="flex items-center">
                 <Building2 className="h-4 w-4 mr-2" />
-                {application.facultyMember.department}, {application.facultyMember.college}
+                {application.facultyMember.department} {application.facultyMember.college}
               </div>
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-2" />
@@ -405,17 +404,27 @@ const ApplicationStatus: React.FC = () => {
             </div>
           </div>
           
-          <div className="text-right">
-            <div className="text-sm text-gray-500">Processing Time</div>
-            <div className="text-2xl font-bold text-primary-600">{processingDays} days</div>
-            <div className="text-sm text-gray-500">Target: 14 days</div>
-          </div>
         </div>
       </div>
 
       {/* Progress Overview */}
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Overview</h3>
+        
+        {/* Rejection Banner */}
+        {application.status === 'rejected' && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <XCircle className="h-5 w-5 text-red-400 mr-3" />
+              <div className="text-sm text-red-700">
+                <p className="font-medium">Application Not Approved</p>
+                <p>
+                  We're sorry, but your application for a secondary appointment has been declined at this time.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="space-y-4">
           {workflowSteps.map((step, index) => {
@@ -435,7 +444,6 @@ const ApplicationStatus: React.FC = () => {
                 
                 {index < workflowSteps.length - 1 && (
                   <div className="flex justify-center py-2">
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
                   </div>
                 )}
               </div>
@@ -451,10 +459,12 @@ const ApplicationStatus: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-2">Current Stage</h4>
-            <p className="text-gray-900">{workflowSteps.find(s => s.key === application.status)?.label || 'Unknown'}</p>
+            <p className="text-gray-900">{
+              application.status === 'rejected' 
+                ? 'Rejected' 
+                : workflowSteps.find(s => s.key === application.status)?.label || 'Unknown'
+            }</p>
             
-            <h4 className="text-sm font-medium text-gray-700 mt-4 mb-2">Current Approver</h4>
-            <p className="text-gray-900">{application.currentApprover || 'CCC Staff'}</p>
           </div>
           
           <div>

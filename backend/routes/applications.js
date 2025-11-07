@@ -149,6 +149,37 @@ router.get('/search', [
   }
 });
 
+// GET /api/applications/my-applications - Get applications for current user by email
+router.get('/my-applications', [
+  query('email').isEmail().withMessage('Valid email address is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: errors.array() 
+      });
+    }
+
+    // Use the existing search method with exact email match
+    const applications = await Application.search(req.query.email);
+    
+    // Filter to exact email matches only (since search uses LIKE which could be partial matches)
+    const exactMatches = applications.filter(app => 
+      app.facultyMember && app.facultyMember.email === req.query.email
+    );
+    
+    res.json({
+      data: exactMatches.map(app => app.toJSON()),
+      message: `Found ${exactMatches.length} applications for ${req.query.email}`
+    });
+  } catch (error) {
+    console.error('Error fetching user applications:', error);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
 // GET /api/applications/:id - Get application by ID
 router.get('/:id', async (req, res) => {
   try {

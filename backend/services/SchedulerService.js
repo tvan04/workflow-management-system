@@ -55,8 +55,13 @@ class SchedulerService {
   stop() {
     console.log('Stopping scheduler service...');
     this.jobs.forEach(({ name, job }) => {
-      job.stop();
-      console.log(`Stopped scheduled job: ${name}`);
+      try {
+        job.stop();
+        job.destroy();
+        console.log(`Stopped scheduled job: ${name}`);
+      } catch (error) {
+        console.error(`Error stopping job ${name}:`, error);
+      }
     });
     this.jobs = [];
     console.log('Scheduler service stopped');

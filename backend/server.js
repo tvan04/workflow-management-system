@@ -117,15 +117,51 @@ async function startServer() {
       console.log(`API Documentation: http://localhost:${PORT}/health`);
     });
 
-    // Graceful shutdown
+    // Graceful shutdown with timeout
     process.on('SIGINT', async () => {
       console.log('\nShutting down gracefully...');
-      SchedulerService.stop();
-      server.close(async () => {
-        await db.close();
-        console.log('Server closed');
-        process.exit(0);
-      });
+      
+      // Set a timeout to force exit if graceful shutdown takes too long
+      const forceExitTimeout = setTimeout(() => {
+        console.log('Force closing server after timeout...');
+        process.exit(1);
+      }, 5000); // 5 second timeout
+
+      try {
+        // Stop scheduler service
+        console.log('Stopping scheduler service...');
+        SchedulerService.stop();
+        
+        // Close server
+        server.close(async () => {
+          try {
+            await db.close();
+            console.log('Server closed');
+          } catch (error) {
+            console.error('Error closing database:', error);
+          }
+          clearTimeout(forceExitTimeout);
+          process.exit(0);
+        });
+        
+        // Also handle the case where server.close() doesn't call the callback
+        setTimeout(() => {
+          console.log('Server close callback not called, exiting anyway...');
+          clearTimeout(forceExitTimeout);
+          process.exit(0);
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Error during shutdown:', error);
+        clearTimeout(forceExitTimeout);
+        process.exit(1);
+      }
+    });
+
+    // Handle other termination signals
+    process.on('SIGTERM', async () => {
+      console.log('\nReceived SIGTERM, shutting down...');
+      process.emit('SIGINT');
     });
 
     return server;

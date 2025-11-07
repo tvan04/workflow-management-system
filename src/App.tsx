@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
 import ApplicationStatus from './pages/ApplicationStatus';
+import UserDashboard from './pages/UserDashboard';
 import AdminPanel from './pages/AdminPanel';
 import SignaturePage from './pages/SignaturePage';
 import RoleBasedRedirect from './components/RoleBasedRedirect';
@@ -30,7 +31,7 @@ function App() {
                   <Route path="/" element={<RoleBasedRedirect />} />
                   
                   {/* Admin-only routes */}
-                  <Route path="/dashboard" element={
+                  <Route path="/admin-dashboard" element={
                     <ProtectedRoute requireAdmin>
                       <Dashboard />
                     </ProtectedRoute>
@@ -47,7 +48,12 @@ function App() {
                       <ApplicationForm />
                     </ProtectedRoute>
                   } />
-                  <Route path="/status/:applicationId?" element={
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute requireApplicant>
+                      <UserDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/status/:applicationId" element={
                     <ProtectedRoute requireApplicant>
                       <ApplicationStatus />
                     </ProtectedRoute>

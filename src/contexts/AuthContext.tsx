@@ -7,14 +7,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const mockUsers = [
   {
     id: '1',
-    email: 'jacqueline.c.frist@vanderbilt.edu',
+    email: 'admin@vanderbilt.edu',
     password: 'admin',
     name: 'Admin',
     role: 'admin' as const
   },
   {
     id: '2', 
-    email: 'test.user@vanderbilt.edu',
+    email: 'jacqueline.c.frist@vanderbilt.edu',
     password: 'user123',
     name: 'Test User',
     role: 'applicant' as const

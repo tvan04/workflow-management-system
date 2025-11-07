@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard,
   FileText,
-  Search,
   Settings,
   LogOut,
   User
@@ -22,13 +21,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const getNavItems = () => {
     if (isAdmin) {
       return [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/admin', label: 'Admin', icon: Settings },
       ];
     } else {
       return [
+        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/apply', label: 'Apply', icon: FileText },
-        { path: '/status', label: 'Status', icon: Search },
       ];
     }
   };
