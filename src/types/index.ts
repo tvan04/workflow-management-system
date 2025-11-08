@@ -24,6 +24,7 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isLoading: boolean;
 }
 
 export interface FacultyMember {

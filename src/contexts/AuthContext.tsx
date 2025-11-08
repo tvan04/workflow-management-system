@@ -27,19 +27,33 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing session on app start
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
+    const initializeAuth = () => {
       try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
+        // Use sessionStorage for browser session persistence
+        const savedUser = sessionStorage.getItem('currentUser');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          // Validate the stored data structure
+          if (userData && userData.id && userData.email && userData.role) {
+            setUser(userData);
+          } else {
+            // Invalid data structure, clear it
+            sessionStorage.removeItem('currentUser');
+          }
+        }
       } catch (error) {
         console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('currentUser');
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -59,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
       
       setUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      sessionStorage.setItem('currentUser', JSON.stringify(userData));
       return true;
     }
     
@@ -68,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('currentUser');
   };
 
   const isAuthenticated = !!user;
@@ -79,7 +93,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     isAuthenticated,
-    isAdmin
+    isAdmin,
+    isLoading
   };
 
   return (

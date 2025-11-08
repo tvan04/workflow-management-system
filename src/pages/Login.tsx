@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
@@ -10,9 +10,31 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      const from = location.state?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        // Default redirect based on role
+        navigate(isAdmin ? '/admin-dashboard' : '/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, isAdmin, authLoading, navigate, location.state?.from?.pathname]);
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-vanderbilt-gold-50 to-vanderbilt-black-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vanderbilt-gold-600"></div>
+      </div>
+    );
+  }
 
   // Get the intended destination or default based on role
   const from = location.state?.from?.pathname || null;
@@ -32,7 +54,7 @@ const Login: React.FC = () => {
         } else {
           // Default redirect based on email (role will be determined by login)
           if (email.toLowerCase() === 'admin@vanderbilt.edu') {
-            navigate('/dashboard', { replace: true });
+            navigate('/admin-dashboard', { replace: true });
           } else {
             navigate('/apply', { replace: true });
           }
