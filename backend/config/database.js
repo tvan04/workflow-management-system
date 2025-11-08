@@ -80,7 +80,7 @@ class Database {
         id TEXT PRIMARY KEY,
         faculty_member_id TEXT NOT NULL,
         status TEXT NOT NULL CHECK (status IN (
-          'submitted', 'ccc_review', 'faculty_vote', 'awaiting_primary_approval',
+          'submitted', 'ccc_review', 'ccc_associate_dean_review', 'faculty_vote', 'awaiting_primary_approval',
           'approved', 'rejected', 'fis_entry_pending', 'completed'
         )),
         appointment_type TEXT NOT NULL CHECK (appointment_type IN ('initial', 'secondary')),

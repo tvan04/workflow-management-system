@@ -31,7 +31,7 @@ const Login: React.FC = () => {
           navigate(from, { replace: true });
         } else {
           // Default redirect based on email (role will be determined by login)
-          if (email.toLowerCase() === 'jacqueline.c.frist@vanderbilt.edu') {
+          if (email.toLowerCase() === 'admin@vanderbilt.edu') {
             navigate('/dashboard', { replace: true });
           } else {
             navigate('/apply', { replace: true });

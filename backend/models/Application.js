@@ -11,6 +11,9 @@ class Application {
     this.effectiveDate = data.effectiveDate || data.effective_date;
     this.duration = data.duration;
     this.rationale = data.rationale;
+    this.contributionsQuestion = data.contributionsQuestion || data.contributions_question;
+    this.alignmentQuestion = data.alignmentQuestion || data.alignment_question;
+    this.enhancementQuestion = data.enhancementQuestion || data.enhancement_question;
     this.cvFilePath = data.cvFilePath || data.cv_file_path;
     this.cvFileName = data.cvFileName || data.cv_file_name;
     
@@ -39,17 +42,17 @@ class Application {
     const query = `
       INSERT INTO applications (
         id, faculty_member_id, status, appointment_type, effective_date, duration,
-        rationale, cv_file_path, cv_file_name, department_chair_name, department_chair_email,
+        rationale, contributions_question, alignment_question, enhancement_question, cv_file_path, cv_file_name, department_chair_name, department_chair_email,
         division_chair_name, division_chair_email, dean_name, dean_email,
         senior_associate_dean_name, senior_associate_dean_email, has_departments,
         submitted_at, updated_at, current_approver, fis_entered, fis_entry_date,
         processing_time_weeks, primary_appointment_end_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
       this.id, this.facultyMemberId, this.status, this.appointmentType, this.effectiveDate,
-      this.duration, this.rationale, this.cvFilePath, this.cvFileName,
+      this.duration, this.rationale, this.contributionsQuestion, this.alignmentQuestion, this.enhancementQuestion, this.cvFilePath, this.cvFileName,
       this.departmentChairName, this.departmentChairEmail, this.divisionChairName,
       this.divisionChairEmail, this.deanName, this.deanEmail, this.seniorAssociateDeanName,
       this.seniorAssociateDeanEmail, this.hasDepartments, this.submittedAt, this.updatedAt,
@@ -128,6 +131,8 @@ class Application {
         return 'CCC Faculty';
       case 'ccc_review':
         return 'CCC Faculty';
+      case 'ccc_associate_dean_review':
+        return 'CCC Associate Dean';
       case 'awaiting_primary_approval':
         if (this.hasDepartments && this.departmentChairName) {
           return `${this.departmentChairName} (Department Chair)`;
@@ -199,6 +204,9 @@ class Application {
       submittedAt: this.submittedAt,
       updatedAt: this.updatedAt,
       rationale: this.rationale,
+      contributionsQuestion: this.contributionsQuestion,
+      alignmentQuestion: this.alignmentQuestion,
+      enhancementQuestion: this.enhancementQuestion,
       cvFile: this.cvFileName,
       currentApprover: this.currentApprover,
       fisEntered: this.fisEntered,

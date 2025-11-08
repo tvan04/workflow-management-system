@@ -171,6 +171,14 @@ export const settingsApi = {
       body: JSON.stringify(settings),
     });
   },
+
+  // Update individual setting
+  updateSetting: async (key: string, value: string): Promise<ApiResponse<any>> => {
+    return apiRequest(`/settings/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    });
+  },
 };
 
 // Notification API removed - functionality no longer available

@@ -54,8 +54,9 @@ const validateApplication = [
   body('college').trim().notEmpty().withMessage('College is required'),
   body('appointmentType').isIn(['initial', 'secondary']).withMessage('Valid appointment type is required'),
   body('effectiveDate').optional({ values: 'falsy' }).isDate().withMessage('Valid effective date is required'),
-  body('duration').isIn(['1year', '2year', '3year']).withMessage('Valid duration is required'),
-  body('rationale').trim().notEmpty().withMessage('Rationale is required'),
+  body('contributionsQuestion').trim().notEmpty().withMessage('Contributions question is required'),
+  body('alignmentQuestion').trim().notEmpty().withMessage('Alignment question is required'),
+  body('enhancementQuestion').trim().notEmpty().withMessage('Enhancement question is required'),
   body('deanName').trim().notEmpty().withMessage('Dean name is required'),
   body('deanEmail').isEmail().withMessage('Valid dean email is required'),
   
@@ -90,7 +91,7 @@ const validateApplication = [
 // GET /api/applications - Get all applications with optional filtering
 router.get('/', [
   query('status').optional().isIn([
-    'submitted', 'ccc_review', 'awaiting_primary_approval',
+    'submitted', 'ccc_review', 'ccc_associate_dean_review', 'awaiting_primary_approval',
     'rejected', 'fis_entry_pending', 'completed',
     // Legacy statuses for filtering backward compatibility
     'faculty_vote', 'approved'
@@ -238,9 +239,11 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
     const applicationData = {
       facultyMemberId: faculty.id,
       appointmentType: req.body.appointmentType,
-      effectiveDate: req.body.effectiveDate || null,
-      duration: req.body.duration,
-      rationale: req.body.rationale,
+      effectiveDate: null, // No longer collected
+      duration: null, // No longer collected
+      contributionsQuestion: req.body.contributionsQuestion,
+      alignmentQuestion: req.body.alignmentQuestion,
+      enhancementQuestion: req.body.enhancementQuestion,
       cvFilePath: req.file.path,
       cvFileName: req.file.originalname,
       
@@ -290,7 +293,7 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
 // PATCH /api/applications/:id/status - Update application status
 router.patch('/:id/status', [
   body('status').isIn([
-    'submitted', 'ccc_review', 'awaiting_primary_approval',
+    'submitted', 'ccc_review', 'ccc_associate_dean_review', 'awaiting_primary_approval',
     'rejected', 'fis_entry_pending', 'completed',
     // Legacy statuses (will be converted)
     'faculty_vote', 'approved'
@@ -423,6 +426,9 @@ router.post('/:id/approve', [
       // Move to next step in approval chain
       switch (application.status) {
         case 'ccc_review':
+          newStatus = 'ccc_associate_dean_review';
+          break;
+        case 'ccc_associate_dean_review':
           newStatus = 'awaiting_primary_approval';
           break;
         case 'awaiting_primary_approval':

@@ -51,6 +51,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
     const colors: Record<string, string> = {
       'submitted': 'badge-info',
       'ccc_review': 'badge-warning',
+      'ccc_associate_dean_review': 'bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium',
       'awaiting_primary_approval': 'bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium',
       'rejected': 'badge-error',
       'fis_entry_pending': 'bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium',
@@ -66,6 +67,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
     const labels: Record<string, string> = {
       'submitted': 'Submitted',
       'ccc_review': 'CCC Review',
+      'ccc_associate_dean_review': 'CCC Associate Dean Review',
       'awaiting_primary_approval': 'Awaiting Primary Approval',
       'rejected': 'Rejected',
       'fis_entry_pending': 'FIS Entry Pending',
@@ -168,6 +170,7 @@ const Dashboard: React.FC = () => {
           applicationsByStatus: {
             'submitted': 0,
             'ccc_review': 0,
+            'ccc_associate_dean_review': 0,
             'awaiting_primary_approval': 0,
             'fis_entry_pending': 0,
             'completed': 0,

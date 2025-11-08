@@ -1,6 +1,7 @@
 export type ApplicationStatus = 
   | 'submitted'
   | 'ccc_review'
+  | 'ccc_associate_dean_review'
   | 'awaiting_primary_approval'
   | 'rejected'
   | 'fis_entry_pending'
@@ -63,7 +64,10 @@ export interface Application {
   submittedAt: Date;
   updatedAt: Date;
   cvFile?: File | string;
-  rationale: string;
+  rationale?: string; // Legacy field for backward compatibility
+  contributionsQuestion?: string; // New structured question
+  alignmentQuestion?: string; // New structured question  
+  enhancementQuestion?: string; // New structured question
   statusHistory: StatusHistoryItem[];
   currentApprover?: string;
   fisEntered: boolean;

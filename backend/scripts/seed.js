@@ -166,6 +166,11 @@ class SeedData {
         key: 'max_file_size_mb',
         value: '10',
         description: 'Maximum file size for CV uploads in MB'
+      },
+      {
+        key: 'ccc_associate_dean_email',
+        value: 'associate.dean.ccc@vanderbilt.edu',
+        description: 'Email address for CCC Associate Dean approval notifications'
       }
     ];
 

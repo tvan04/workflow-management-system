@@ -275,6 +275,7 @@ export const mockMetrics: DashboardMetrics = {
   applicationsByStatus: {
     'submitted': 8,
     'ccc_review': 12,
+    'ccc_associate_dean_review': 5,
     'awaiting_primary_approval': 15,
     'fis_entry_pending': 10,
     'completed': 0,

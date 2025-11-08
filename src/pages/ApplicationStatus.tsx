@@ -254,6 +254,11 @@ const ApplicationStatus: React.FC = () => {
         key: 'ccc_review',
         label: 'CCC Review',
         description: 'The CCC Dean\'s office is reviewing your CV and rationale for mission alignment.',
+      },
+      {
+        key: 'ccc_associate_dean_review',
+        label: 'CCC Associate Dean Review',
+        description: 'The CCC Associate Dean is reviewing your application for final CCC approval.',
       }
     ];
 
@@ -316,7 +321,8 @@ const ApplicationStatus: React.FC = () => {
     // Check if we've passed this step
     const statusOrder: AppStatus[] = [
       'submitted',
-      'ccc_review', 
+      'ccc_review',
+      'ccc_associate_dean_review', 
       'awaiting_primary_approval',
       'fis_entry_pending',
       'completed'
@@ -343,7 +349,7 @@ const ApplicationStatus: React.FC = () => {
     
     // Find the history entry that shows this step was completed
     // This is the entry that moved the application TO the next step
-    const statusOrder: AppStatus[] = ['submitted', 'ccc_review', 'awaiting_primary_approval', 'fis_entry_pending', 'completed'];
+    const statusOrder: AppStatus[] = ['submitted', 'ccc_review', 'ccc_associate_dean_review', 'awaiting_primary_approval', 'fis_entry_pending', 'completed'];
     const stepIndex = statusOrder.indexOf(stepKey as AppStatus);
     
     if (stepIndex === -1 || stepIndex >= statusOrder.length - 1) {

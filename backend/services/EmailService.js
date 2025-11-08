@@ -211,6 +211,97 @@ class EmailService {
     }
   }
 
+  async sendCCCAssociateDeanNotification(associateDeanEmail, applicantName, applicationId, primaryAppointment) {
+    if (!this.apiKey) {
+      throw new Error('Email API key not configured');
+    }
+
+    if (!associateDeanEmail) {
+      throw new Error('CCC Associate Dean Email not configured');
+    }
+
+    // Generate approval token
+    const approvalToken = Buffer.from(`${applicationId}:${associateDeanEmail}:${Date.now()}`).toString('base64');
+    
+    // Construct personalized approval link
+    const approvalLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/signature/${applicationId}?approver=${encodeURIComponent(associateDeanEmail)}&token=${approvalToken}`;
+
+    const subject = `CCC Associate Dean Review Required - Secondary Appointment Application`;
+    const body = `
+      <p>Dear Associate Dean,</p>
+      
+      <p>A secondary appointment application for the College of Connected Computing has completed initial CCC review and requires your approval.</p>
+      
+      <p><strong>Application ID:</strong> ${applicationId}<br/>
+      <strong>Applicant:</strong> ${applicantName}<br/>
+      <strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
+      
+      <p>Please review and approve/deny this application using the link below:</p>
+      
+      <p><a href="${approvalLink}" style="background-color: #1D4ED8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Review Application</a></p>
+      
+      <p><strong>Important:</strong> This link is personalized for you and expires after use. Please do not share this link.</p>
+      
+      <p>If you have any questions regarding this application, please contact the Faculty Affairs office at <a href="mailto:cccfacultyaffairs@vanderbilt.edu">cccfacultyaffairs@vanderbilt.edu</a>.</p>
+      
+      <p>Thank you for your prompt attention to this matter.</p>
+      
+      <p>Best regards,<br/>
+      CCC Faculty Affairs<br/>
+      Vanderbilt University</p>
+    `;
+
+    const payload = {
+      data: {
+        subject: subject,
+        body: body,
+        to_recipients: [associateDeanEmail],
+        cc_recipients: [],
+        bcc_recipients: [],
+        importance: 'high'
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`
+    };
+
+    try {
+      console.log(`Sending CCC Associate Dean notification email to: ${associateDeanEmail}`);
+      
+      const response = await axios.post(this.apiUrl, payload, { 
+        headers,
+        timeout: 30000
+      });
+
+      if (response.status === 200) {
+        console.log('✅ CCC Associate Dean notification email sent successfully');
+        return {
+          success: true,
+          recipient: associateDeanEmail,
+          messageId: response.data?.data?.id || 'unknown'
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send CCC Associate Dean notification email:', error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
+      // Don't throw the error - we don't want email failures to block status updates
+      return {
+        success: false,
+        error: error.message,
+        recipient: associateDeanEmail
+      };
+    }
+  }
+
   async sendConfirmationEmail(applicantEmail, applicantName, applicationId, primaryAppointment) {
     if (!this.apiKey) {
       throw new Error('Email API key not configured');

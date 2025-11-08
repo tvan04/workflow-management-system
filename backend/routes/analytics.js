@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
 router.get('/', [
   query('format').optional().isIn(['csv', 'json']).withMessage('Invalid format'),
   query('status').optional().isIn([
-    'submitted', 'ccc_review', 'faculty_vote', 'awaiting_primary_approval',
+    'submitted', 'ccc_review', 'ccc_associate_dean_review', 'faculty_vote', 'awaiting_primary_approval',
     'approved', 'rejected', 'fis_entry_pending', 'completed'
   ]).withMessage('Invalid status filter'),
   query('startDate').optional().isDate().withMessage('Invalid start date'),
@@ -239,7 +239,7 @@ router.get('/college-breakdown', async (req, res) => {
         COUNT(*) as total_applications,
         COUNT(CASE WHEN a.status = 'completed' THEN 1 END) as completed,
         COUNT(CASE WHEN a.status = 'rejected' THEN 1 END) as rejected,
-        COUNT(CASE WHEN a.status IN ('submitted', 'ccc_review', 'faculty_vote', 'awaiting_primary_approval', 'approved', 'fis_entry_pending') THEN 1 END) as in_progress,
+        COUNT(CASE WHEN a.status IN ('submitted', 'ccc_review', 'ccc_associate_dean_review', 'faculty_vote', 'awaiting_primary_approval', 'approved', 'fis_entry_pending') THEN 1 END) as in_progress,
         AVG(CASE WHEN a.processing_time_weeks IS NOT NULL THEN a.processing_time_weeks END) as avg_processing_time
       FROM applications a
       JOIN faculty_members f ON a.faculty_member_id = f.id

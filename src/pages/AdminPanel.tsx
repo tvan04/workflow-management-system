@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { College, Application, ApplicationStatus, FacultyMember } from '../types';
 import { mockApplications, generateMockApplications } from '../utils/mockData';
-import { applicationApi } from '../utils/api';
+import { applicationApi, settingsApi } from '../utils/api';
 
 interface TabProps {
   activeTab: string;
@@ -62,10 +62,11 @@ const ApplicationProgress: React.FC<{ status: ApplicationStatus }> = ({ status }
   const statusOrder = {
     'submitted': 0,
     'ccc_review': 1,
-    'awaiting_primary_approval': 2,
+    'ccc_associate_dean_review': 2,
+    'awaiting_primary_approval': 3,
     'rejected': -1,
-    'fis_entry_pending': 3,
-    'completed': 4
+    'fis_entry_pending': 4,
+    'completed': 5
   };
 
   const currentStep = statusOrder[status];
@@ -180,8 +181,14 @@ const ApplicationEditModal: React.FC<{
     } else if (!validateEmail(formData.facultyMember.email)) {
       newErrors['facultyMember.email'] = 'Invalid email format';
     }
-    if (!formData.rationale.trim()) {
-      newErrors.rationale = 'Rationale is required';
+    if (!formData.contributionsQuestion?.trim()) {
+      newErrors.contributionsQuestion = 'Contributions question is required';
+    }
+    if (!formData.alignmentQuestion?.trim()) {
+      newErrors.alignmentQuestion = 'Alignment question is required';
+    }
+    if (!formData.enhancementQuestion?.trim()) {
+      newErrors.enhancementQuestion = 'Enhancement question is required';
     }
     if (!formData.currentApprover?.trim()) {
       newErrors.currentApprover = 'Current approver is required';
@@ -369,20 +376,55 @@ const ApplicationEditModal: React.FC<{
               </div>
             </div>
 
-            {/* Rationale */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rationale *</label>
-              <textarea
-                value={formData.rationale}
-                onChange={(e) => handleInputChange('rationale', e.target.value)}
-                rows={4}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.rationale ? 'border-red-300' : 'border-gray-300'
-                }`}
-              />
-              {errors.rationale && (
-                <p className="mt-1 text-sm text-red-600">{errors.rationale}</p>
-              )}
+            {/* Three Questions */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contributions Question *</label>
+                <p className="text-xs text-gray-500 mb-2">What specific contributions do you expect to make to the College of Connected Computing through this secondary appointment?</p>
+                <textarea
+                  value={formData.contributionsQuestion || ''}
+                  onChange={(e) => handleInputChange('contributionsQuestion', e.target.value)}
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                    errors.contributionsQuestion ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
+                {errors.contributionsQuestion && (
+                  <p className="mt-1 text-sm text-red-600">{errors.contributionsQuestion}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Alignment Question *</label>
+                <p className="text-xs text-gray-500 mb-2">How does your research, teaching, or service align with the interdisciplinary mission of the College of Connected Computing?</p>
+                <textarea
+                  value={formData.alignmentQuestion || ''}
+                  onChange={(e) => handleInputChange('alignmentQuestion', e.target.value)}
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                    errors.alignmentQuestion ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
+                {errors.alignmentQuestion && (
+                  <p className="mt-1 text-sm text-red-600">{errors.alignmentQuestion}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enhancement Question *</label>
+                <p className="text-xs text-gray-500 mb-2">How will this secondary appointment enhance your primary academic work and benefit both your home department and the College of Connected Computing?</p>
+                <textarea
+                  value={formData.enhancementQuestion || ''}
+                  onChange={(e) => handleInputChange('enhancementQuestion', e.target.value)}
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                    errors.enhancementQuestion ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
+                {errors.enhancementQuestion && (
+                  <p className="mt-1 text-sm text-red-600">{errors.enhancementQuestion}</p>
+                )}
+              </div>
             </div>
 
             {/* Actions */}
@@ -598,11 +640,46 @@ const ApplicationDetailsModal: React.FC<{
             )}
           </div>
 
-          {/* Rationale */}
+          {/* Application Questions */}
           <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-3">Rationale</h4>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-700">{application.rationale}</p>
+            <h4 className="text-lg font-medium text-gray-900 mb-3">Application Responses</h4>
+            <div className="space-y-4">
+              {application.contributionsQuestion && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h5 className="text-sm font-medium text-gray-900 mb-2">
+                    What specific contributions do you expect to make to the College of Connected Computing through this secondary appointment?
+                  </h5>
+                  <p className="text-sm text-gray-700">{application.contributionsQuestion}</p>
+                </div>
+              )}
+              
+              {application.alignmentQuestion && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h5 className="text-sm font-medium text-gray-900 mb-2">
+                    How does your research, teaching, or service align with the interdisciplinary mission of the College of Connected Computing?
+                  </h5>
+                  <p className="text-sm text-gray-700">{application.alignmentQuestion}</p>
+                </div>
+              )}
+              
+              {application.enhancementQuestion && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h5 className="text-sm font-medium text-gray-900 mb-2">
+                    How will this secondary appointment enhance your primary academic work and benefit both your home department and the College of Connected Computing?
+                  </h5>
+                  <p className="text-sm text-gray-700">{application.enhancementQuestion}</p>
+                </div>
+              )}
+              
+              {/* Fallback to old rationale field for backward compatibility */}
+              {!application.contributionsQuestion && !application.alignmentQuestion && !application.enhancementQuestion && application.rationale && (
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <h5 className="text-sm font-medium text-gray-900 mb-2">
+                    Rationale (Legacy Format)
+                  </h5>
+                  <p className="text-sm text-gray-700">{application.rationale}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -823,6 +900,7 @@ const CurrentApplicationsTab: React.FC = () => {
     const statusConfig = {
       'submitted': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Submitted' },
       'ccc_review': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'CCC Review' },
+      'ccc_associate_dean_review': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'CCC Associate Dean Review' },
       'awaiting_primary_approval': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Awaiting Approval' },
       'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
       'fis_entry_pending': { bg: 'bg-green-100', text: 'text-green-800', label: 'FIS Entry Pending' },
@@ -1463,16 +1541,73 @@ const SystemSettingsTab: React.FC = () => {
     processingTargetDays: 14,
     fisIntegration: true,
     oracleApiEndpoint: 'https://api.vanderbilt.edu/oracle/org-chart',
-    facultyVotingEnabled: false
+    facultyVotingEnabled: false,
+    cccAssociateDeanEmail: 'associate.dean.ccc@vanderbilt.edu'
   });
 
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSave = () => {
-    // Simulate save operation
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await settingsApi.getSettings();
+      const dbSettings = response.data;
+      
+      // Map database settings to local state
+      setSettings({
+        processingTargetDays: parseInt(dbSettings.processing_time_goal_weeks?.value || '2') * 7,
+        fisIntegration: true, // This could be mapped from a DB setting if needed
+        oracleApiEndpoint: 'https://api.vanderbilt.edu/oracle/org-chart', // This could be mapped from a DB setting if needed
+        facultyVotingEnabled: dbSettings.enable_faculty_vote?.value === 'true',
+        cccAssociateDeanEmail: dbSettings.ccc_associate_dean_email?.value || 'associate.dean.ccc@vanderbilt.edu'
+      });
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      setError('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError('');
+      
+      // For now, we'll only update the CCC Associate Dean email setting
+      // Other settings can be added to the backend settings system as needed
+      await updateCCCAssociateDeanEmail(settings.cccAssociateDeanEmail);
+      
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setError('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateCCCAssociateDeanEmail = async (email: string) => {
+    await settingsApi.updateSetting('ccc_associate_dean_email', email);
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl">
@@ -1484,8 +1619,8 @@ const SystemSettingsTab: React.FC = () => {
       <div className="space-y-6">
         <div className="bg-white shadow rounded-lg p-6">
           <h4 className="text-md font-medium text-gray-900 mb-4">Workflow Settings</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Processing Target (days)
               </label>
@@ -1498,6 +1633,30 @@ const SystemSettingsTab: React.FC = () => {
                 max="90"
               />
               <p className="mt-1 text-xs text-gray-500">Target processing time for applications</p>
+            </div>
+            <div className="md:col-span-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                CCC Associate Dean Email
+              </label>
+              <div className="flex space-x-3">
+                <input
+                  type="email"
+                  value={settings.cccAssociateDeanEmail}
+                  onChange={(e) => setSettings(prev => ({ ...prev, cccAssociateDeanEmail: e.target.value }))}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="associate.dean.ccc@vanderbilt.edu"
+                />
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving...' : 'Change Email'}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Email for CCC Associate Dean approval notifications</p>
+              {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+              {saved && <p className="mt-1 text-xs text-green-600">Email updated successfully!</p>}
             </div>
           </div>
         </div>
@@ -1547,26 +1706,6 @@ const SystemSettingsTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-              saved ? 'bg-green-600' : 'bg-primary-600 hover:bg-primary-700'
-            }`}
-          >
-            {saved ? (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Saved!
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Settings
-              </>
-            )}
-          </button>
-        </div>
       </div>
     </div>
   );
