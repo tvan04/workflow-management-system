@@ -10,8 +10,8 @@ const db = require('../config/database');
 
 const router = express.Router();
 
-// GET /api/metrics - Get dashboard metrics
-router.get('/', [
+// GET /api/analytics/metrics - Get dashboard metrics
+router.get('/metrics', [
   query('timeframe').optional().isIn(['week', 'month', 'quarter', 'year']).withMessage('Invalid timeframe')
 ], async (req, res) => {
   try {
@@ -35,20 +35,23 @@ router.get('/', [
   }
 });
 
-// GET /api/trends - Get processing time trends
-router.get('/', async (req, res) => {
+// GET /api/analytics/trends - Get processing time trends
+router.get('/trends', async (req, res) => {
   try {
     // Get processing time trends by month for the last 12 months
     const query = `
       SELECT 
-        strftime('%Y-%m', submitted_at) as month,
+        strftime('%Y-%m', datetime(submitted_at/1000, 'unixepoch')) as month,
         COUNT(*) as applications,
-        AVG(processing_time_weeks) as avg_processing_time,
+        AVG(CASE 
+          WHEN status = 'completed' THEN ROUND((updated_at - submitted_at) / (1000.0 * 60 * 60 * 24))
+          ELSE NULL 
+        END) as avg_processing_time,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
         COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected
       FROM applications 
-      WHERE submitted_at >= datetime('now', '-12 months')
-      GROUP BY strftime('%Y-%m', submitted_at)
+      WHERE datetime(submitted_at/1000, 'unixepoch') >= datetime('now', '-12 months')
+      GROUP BY strftime('%Y-%m', datetime(submitted_at/1000, 'unixepoch'))
       ORDER BY month ASC
     `;
 
@@ -74,8 +77,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/export - Export application data
-router.get('/', [
+// GET /api/analytics/export - Export application data
+router.get('/export', [
   query('format').optional().isIn(['csv', 'json']).withMessage('Invalid format'),
   query('status').optional().isIn([
     'submitted', 'ccc_review', 'ccc_associate_dean_review', 'faculty_vote', 'awaiting_primary_approval',

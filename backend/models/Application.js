@@ -366,14 +366,16 @@ class Application {
       applicationsByStatus[row.status] = row.count;
     });
 
-    // Get average processing time for completed applications
+    // Get average processing time for completed applications (in days)
     const avgTimeQuery = `
-      SELECT AVG(processing_time_weeks) as avg_time 
+      SELECT AVG(
+        ROUND((updated_at - submitted_at) / (1000.0 * 60 * 60 * 24))
+      ) as avg_days 
       FROM applications 
-      WHERE status IN ('completed', 'rejected') AND processing_time_weeks IS NOT NULL
+      WHERE status = 'completed'
     `;
     const avgTimeResult = await db.get(avgTimeQuery);
-    const averageProcessingTime = avgTimeResult.avg_time || 0;
+    const averageProcessingTime = avgTimeResult.avg_days || 0;
 
     // Get stalled applications (more than 7 days since update)
     const stalledQuery = `

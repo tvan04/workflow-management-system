@@ -6,7 +6,7 @@ import {
   Users, 
   TrendingUp,
   Calendar,
-  Download,
+  // Download,
   Sparkles
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -124,11 +124,24 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-surface-600">
-        {application.processingTimeWeeks ? (
-          <span className="font-medium">{application.processingTimeWeeks} weeks</span>
-        ) : (
-          <span className="text-vanderbilt-gold-600 font-medium">In Progress</span>
-        )}
+        {(() => {
+          // Don't show processing time for rejected applications
+          if (application.status === 'rejected') {
+            return <span className="text-gray-500">N/A</span>;
+          }
+          
+          // For completed applications, calculate actual processing time in days
+          if (application.status === 'completed') {
+            const submittedDate = application.submittedAt instanceof Date ? application.submittedAt : new Date(application.submittedAt);
+            const completedDate = application.updatedAt instanceof Date ? application.updatedAt : new Date(application.updatedAt);
+            const diffTime = completedDate.getTime() - submittedDate.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return <span className="font-medium">{diffDays} days</span>;
+          }
+          
+          // For applications still in progress
+          return <span className="text-vanderbilt-gold-600 font-medium">In Progress</span>;
+        })()}
       </td>
     </tr>
   );
@@ -137,16 +150,18 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
 const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [selectedTimeFrame, setSelectedTimeFrame] = useState<'week' | 'month' | 'quarter'>('month');
+  const [trendsData, setTrendsData] = useState<any[]>([]);
+  // const [selectedTimeFrame, setSelectedTimeFrame] = useState<'week' | 'month' | 'quarter'>('month');
 
   // Load real data from API
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        // Load applications and metrics in parallel
-        const [applicationsResponse, metricsResponse] = await Promise.all([
+        // Load applications, metrics, and trends in parallel
+        const [applicationsResponse, metricsResponse, trendsResponse] = await Promise.all([
           applicationApi.getAll(),
-          analyticsApi.getMetrics()
+          analyticsApi.getMetrics(),
+          analyticsApi.getTrends()
         ]);
 
         const apps = applicationsResponse.data.map((app: any) => ({
@@ -161,6 +176,8 @@ const Dashboard: React.FC = () => {
 
         setApplications(apps);
         setMetrics(metricsResponse.data);
+        console.log('Trends response:', trendsResponse.data);
+        setTrendsData(trendsResponse.data);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
         // Fallback to empty state if API fails
@@ -186,11 +203,9 @@ const Dashboard: React.FC = () => {
     loadDashboardData();
   }, []);
 
-  const progressData = [
-    { month: 'Aug', avgTime: 9.2 },
-    { month: 'Sep', avgTime: 7.8 },
-    { month: 'Oct', avgTime: 6.2 },
-  ];
+  // Use real trends data from API, fallback to empty array if no data
+  console.log('Trends data in component:', trendsData);
+  const progressData = trendsData.length > 0 ? trendsData : [];
 
   const statusDistributionData = metrics ? ([
     'submitted',
@@ -256,10 +271,9 @@ const Dashboard: React.FC = () => {
         />
         <MetricCard
           title="Average Processing Time"
-          value={`${metrics.averageProcessingTime} weeks`}
+          value={`${Math.round(metrics.averageProcessingTime)} days`}
           icon={Clock}
           color="bg-gradient-to-br from-success-500 to-success-600"
-          trend="22% improvement"
         />
         <MetricCard
           title="Completed This Month"
@@ -282,10 +296,6 @@ const Dashboard: React.FC = () => {
             <h3 className="text-xl font-display font-semibold text-vanderbilt-black-900">
               Processing Time Trend
             </h3>
-            <div className="flex items-center space-x-2 text-sm text-success-600">
-              <TrendingUp className="h-4 w-4" />
-              <span className="font-medium">Improving</span>
-            </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={progressData}>

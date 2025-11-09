@@ -64,9 +64,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/applications', applicationRoutes);
 app.use('/api/colleges', collegeRoutes);
-app.use('/api/metrics', analyticsRoutes);
-app.use('/api/trends', analyticsRoutes);
-app.use('/api/export', analyticsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/settings', settingsRoutes);
 
 // Catch-all for API routes

@@ -142,18 +142,18 @@ export const organizationApi = {
 export const analyticsApi = {
   // Get dashboard metrics
   getMetrics: async (timeframe?: string): Promise<ApiResponse<any>> => {
-    const endpoint = timeframe ? `/metrics?timeframe=${timeframe}` : '/metrics';
+    const endpoint = timeframe ? `/analytics/metrics?timeframe=${timeframe}` : '/analytics/metrics';
     return apiRequest(endpoint);
   },
 
   // Export data
   exportData: async (format: 'csv' | 'json' = 'csv'): Promise<ApiResponse<{ downloadUrl: string }>> => {
-    return apiRequest(`/export?format=${format}`);
+    return apiRequest(`/analytics/export?format=${format}`);
   },
 
   // Get processing time trends
   getTrends: async (): Promise<ApiResponse<any[]>> => {
-    return apiRequest('/trends');
+    return apiRequest('/analytics/trends');
   },
 };
 
