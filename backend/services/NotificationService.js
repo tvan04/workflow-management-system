@@ -78,6 +78,19 @@ class NotificationService {
         }
       }
       
+      // If status moved to FIS entry pending, send notification to CCC faculty
+      if (newStatus === 'fis_entry_pending') {
+        console.log(`📧 Status changed to FIS Entry Pending - sending notification for ${application.id}`);
+        const primaryAppointment = `${facultyMember.college}, ${facultyMember.department || 'No Department'}`;
+        
+        await this.emailService.sendFISEntryNotification(
+          applicantName,
+          application.id,
+          primaryAppointment
+        );
+        console.log(`✅ FIS entry notification sent for ${application.id}`);
+      }
+      
     } catch (error) {
       console.error('❌ Failed to send status change notification:', error.message);
       // Don't throw - we don't want to block status updates

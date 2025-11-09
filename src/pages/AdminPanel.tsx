@@ -54,6 +54,7 @@ const ApplicationProgress: React.FC<{ status: ApplicationStatus }> = ({ status }
   const steps = [
     { key: 'submitted', label: 'Submitted' },
     { key: 'ccc_review', label: 'CCC Review' },
+    { key: 'ccc_associate_dean_review', label: 'CCC Associate Dean' },
     { key: 'awaiting_primary_approval', label: 'Primary Approval' },
     { key: 'fis_entry_pending', label: 'FIS Entry' },
     { key: 'completed', label: 'Completed' }

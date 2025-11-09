@@ -384,6 +384,98 @@ class EmailService {
     }
   }
 
+  async sendFISEntryNotification(applicantName, applicationId, primaryAppointment) {
+    if (!this.apiKey) {
+      throw new Error('Email API key not configured');
+    }
+
+    if (!this.cccFacultyEmail) {
+      throw new Error('CCC Faculty Email not configured');
+    }
+
+    const subject = `Application Approved - FIS Entry Required (${applicationId})`;
+    const body = `
+      <p>Dear CCC Faculty,</p>
+      
+      <p>A secondary appointment application has been fully approved and is now ready for final review and FIS (Faculty Information System) entry.</p>
+      
+      <p><strong>Application ID:</strong> ${applicationId}<br/>
+      <strong>Applicant:</strong> ${applicantName}<br/>
+      <strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
+      
+      <div style="margin: 20px 0; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px;">
+        <p style="margin: 0 0 10px 0; font-weight: bold; color: #155724;">✅ Status: APPROVED</p>
+        <p style="margin: 0; color: #155724;">This application has completed all required approvals and is now ready for FIS entry.</p>
+      </div>
+      
+      <p><strong>Next Steps:</strong></p>
+      <ol>
+        <li>Review the complete application in the workflow management system</li>
+        <li>Perform final verification of all approvals</li>
+        <li>Enter the approved appointment details into FIS</li>
+        <li>Mark the application as completed in the system</li>
+      </ol>
+      
+      <p>Please log into the workflow management system to access the full application details and complete the FIS entry process.</p>
+            
+      <p>Thank you for your prompt attention to completing this appointment process.</p>
+      
+      <p>Best regards,<br/>
+      CCC Faculty Affairs<br/>
+      Vanderbilt University</p>
+    `;
+
+    const payload = {
+      data: {
+        subject: subject,
+        body: body,
+        to_recipients: [this.cccFacultyEmail],
+        cc_recipients: [],
+        bcc_recipients: [],
+        importance: 'high'
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`
+    };
+
+    try {
+      console.log(`Sending FIS entry notification email to: ${this.cccFacultyEmail}`);
+      
+      const response = await axios.post(this.apiUrl, payload, { 
+        headers,
+        timeout: 30000
+      });
+
+      if (response.status === 200) {
+        console.log('✅ FIS entry notification email sent successfully');
+        return {
+          success: true,
+          recipient: this.cccFacultyEmail,
+          messageId: response.data?.data?.id || 'unknown'
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send FIS entry notification email:', error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
+      // Don't throw the error - we don't want email failures to block status updates
+      return {
+        success: false,
+        error: error.message,
+        recipient: this.cccFacultyEmail
+      };
+    }
+  }
+
   // Helper method to extract all approver emails from an application
   getApproverEmails(applicationData) {
     const emails = [];

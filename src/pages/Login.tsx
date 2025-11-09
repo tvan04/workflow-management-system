@@ -56,7 +56,7 @@ const Login: React.FC = () => {
           if (email.toLowerCase() === 'admin@vanderbilt.edu') {
             navigate('/admin-dashboard', { replace: true });
           } else {
-            navigate('/apply', { replace: true });
+            navigate('/dashboard', { replace: true });
           }
         }
       } else {

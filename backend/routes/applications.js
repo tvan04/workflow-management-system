@@ -432,10 +432,10 @@ router.post('/:id/approve', [
           newStatus = 'awaiting_primary_approval';
           break;
         case 'awaiting_primary_approval':
-          newStatus = 'approved';
+          newStatus = 'fis_entry_pending';
           break;
         default:
-          newStatus = 'approved';
+          newStatus = 'fis_entry_pending';
       }
     } else {
       newStatus = 'rejected';
