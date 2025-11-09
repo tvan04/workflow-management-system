@@ -80,7 +80,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
   };
 
   const daysSinceUpdate = Math.floor((new Date().getTime() - new Date(application.updatedAt).getTime()) / (1000 * 3600 * 24));
-  const isStalled = daysSinceUpdate > 7;
+  const isStalled = daysSinceUpdate > 7 && !['completed', 'rejected'].includes(application.status);
 
   return (
     <tr className={`transition-all duration-200 ${isStalled ? 'bg-error-50 border-l-4 border-error-400' : 'hover:bg-surface-50'}`}>
