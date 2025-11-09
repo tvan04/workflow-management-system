@@ -15,7 +15,6 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { College, Application, ApplicationStatus, FacultyMember } from '../types';
-import { mockApplications, generateMockApplications } from '../utils/mockData';
 import { applicationApi, settingsApi } from '../utils/api';
 
 interface TabProps {
@@ -822,6 +821,7 @@ const CurrentApplicationsTab: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize applications data from API
   useEffect(() => {
@@ -847,15 +847,8 @@ const CurrentApplicationsTab: React.FC = () => {
         setApplications(applicationsWithDates);
       } catch (error) {
         console.error('Failed to fetch applications:', error);
-        // Fallback to mock data if API fails
-        const allApplications = [...mockApplications, ...generateMockApplications(20)];
-        console.log('Loaded applications from mock data:', allApplications.map(app => ({ id: app.id, name: app.facultyMember.name })));
-        const mockIds = allApplications.map(app => app.id);
-        const duplicateMockIds = mockIds.filter((id, index) => mockIds.indexOf(id) !== index);
-        if (duplicateMockIds.length > 0) {
-          console.warn('Found duplicate mock application IDs:', duplicateMockIds);
-        }
-        setApplications(allApplications);
+        setError('Unable to load applications. Please check your connection and try again.');
+        setApplications([]);
       }
     };
 
@@ -1710,7 +1703,7 @@ const SystemSettingsTab: React.FC = () => {
         <div className="bg-white shadow rounded-lg p-6">
           <h4 className="text-md font-medium text-gray-900 mb-4">Workflow Settings</h4>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="md:col-span-2">
+            {/* <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Processing Target (days)
               </label>
@@ -1723,7 +1716,7 @@ const SystemSettingsTab: React.FC = () => {
                 max="90"
               />
               <p className="mt-1 text-xs text-gray-500">Target processing time for applications</p>
-            </div>
+            </div> */}
             <div className="md:col-span-3">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 CCC Associate Dean Email
@@ -1751,7 +1744,7 @@ const SystemSettingsTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
+        {/* <div className="bg-white shadow rounded-lg p-6">
           <h4 className="text-md font-medium text-gray-900 mb-4">Integration Settings</h4>
           <div className="space-y-4">
             <label className="flex items-center">
@@ -1794,7 +1787,7 @@ const SystemSettingsTab: React.FC = () => {
               </span>
             </label>
           </div>
-        </div>
+        </div> */}
 
       </div>
     </div>

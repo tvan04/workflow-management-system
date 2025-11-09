@@ -151,6 +151,7 @@ const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [trendsData, setTrendsData] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
   // const [selectedTimeFrame, setSelectedTimeFrame] = useState<'week' | 'month' | 'quarter'>('month');
 
   // Load real data from API
