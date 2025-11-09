@@ -351,9 +351,30 @@ router.patch('/:id/status', [
 
 // PUT /api/applications/:id - Update application (admin only)
 router.put('/:id', [
+  // Admin-only fields
   body('fisEntered').optional().isBoolean().withMessage('FIS entered must be boolean'),
   body('processingTimeWeeks').optional().isNumeric().withMessage('Processing time must be numeric'),
-  body('primaryAppointmentEndDate').optional().isDate().withMessage('Valid end date required')
+  body('primaryAppointmentEndDate').optional().isISO8601().withMessage('Valid end date required'),
+  
+  // Application fields
+  body('status').optional().isIn([
+    'submitted', 'ccc_review', 'ccc_associate_dean_review', 'awaiting_primary_approval',
+    'rejected', 'fis_entry_pending', 'completed'
+  ]).withMessage('Invalid status'),
+  body('currentApprover').optional().trim(),
+  
+  // Question fields
+  body('contributionsQuestion').optional().trim(),
+  body('alignmentQuestion').optional().trim(),
+  body('enhancementQuestion').optional().trim(),
+  
+  // Faculty member fields  
+  body('facultyMember.name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty if provided'),
+  body('facultyMember.email').optional().trim().isEmail().withMessage('Valid email is required if provided'),
+  body('facultyMember.title').optional().trim(),
+  body('facultyMember.college').optional().trim(),
+  body('facultyMember.department').optional().trim(),
+  body('facultyMember.institution').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -370,6 +391,8 @@ router.put('/:id', [
     }
 
     const updates = {};
+    
+    // Admin-only fields
     if (req.body.fisEntered !== undefined) {
       updates.fisEntered = req.body.fisEntered;
       if (req.body.fisEntered) {
@@ -379,14 +402,76 @@ router.put('/:id', [
     if (req.body.processingTimeWeeks !== undefined) {
       updates.processingTimeWeeks = parseFloat(req.body.processingTimeWeeks);
     }
-    if (req.body.primaryAppointmentEndDate) {
+    if (req.body.primaryAppointmentEndDate !== undefined) {
       updates.primaryAppointmentEndDate = req.body.primaryAppointmentEndDate;
+    }
+    
+    // Application fields
+    if (req.body.status !== undefined) {
+      updates.status = req.body.status;
+    }
+    if (req.body.currentApprover !== undefined) {
+      updates.currentApprover = req.body.currentApprover;
+    }
+    
+    // Question fields
+    if (req.body.contributionsQuestion !== undefined) {
+      updates.contributionsQuestion = req.body.contributionsQuestion;
+    }
+    if (req.body.alignmentQuestion !== undefined) {
+      updates.alignmentQuestion = req.body.alignmentQuestion;
+    }
+    if (req.body.enhancementQuestion !== undefined) {
+      updates.enhancementQuestion = req.body.enhancementQuestion;
+    }
+    
+    // Faculty member fields - need to update the related faculty_members table
+    if (req.body.facultyMember) {
+      const facultyUpdates = {};
+      if (req.body.facultyMember.name !== undefined) {
+        facultyUpdates.name = req.body.facultyMember.name;
+      }
+      if (req.body.facultyMember.email !== undefined) {
+        facultyUpdates.email = req.body.facultyMember.email;
+      }
+      if (req.body.facultyMember.title !== undefined) {
+        facultyUpdates.title = req.body.facultyMember.title;
+      }
+      if (req.body.facultyMember.college !== undefined) {
+        facultyUpdates.college = req.body.facultyMember.college;
+      }
+      if (req.body.facultyMember.department !== undefined) {
+        facultyUpdates.department = req.body.facultyMember.department;
+      }
+      if (req.body.facultyMember.institution !== undefined) {
+        facultyUpdates.institution = req.body.facultyMember.institution;
+      }
+      
+      // Update faculty member if there are changes
+      if (Object.keys(facultyUpdates).length > 0) {
+        const db = require('../config/database');
+        await db.run(
+          'UPDATE faculty_members SET name = ?, email = ?, title = ?, college = ?, department = ?, institution = ? WHERE id = ?',
+          [
+            facultyUpdates.name || application.facultyMember.name,
+            facultyUpdates.email || application.facultyMember.email,
+            facultyUpdates.title || application.facultyMember.title,
+            facultyUpdates.college || application.facultyMember.college,
+            facultyUpdates.department || application.facultyMember.department,
+            facultyUpdates.institution || application.facultyMember.institution,
+            application.facultyMemberId
+          ]
+        );
+      }
     }
 
     await application.update(updates);
 
+    // Reload the application with updated faculty member data
+    const updatedApplication = await Application.findById(req.params.id);
+
     res.json({
-      data: application.toJSON(),
+      data: updatedApplication.toJSON(),
       message: 'Application updated successfully'
     });
   } catch (error) {

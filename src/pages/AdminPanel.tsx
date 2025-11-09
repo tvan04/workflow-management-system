@@ -8,7 +8,6 @@ import {
   Save,
   X,
   AlertTriangle,
-  CheckCircle,
   FileText,
   Download,
   Eye,
@@ -190,9 +189,6 @@ const ApplicationEditModal: React.FC<{
     }
     if (!formData.enhancementQuestion?.trim()) {
       newErrors.enhancementQuestion = 'Enhancement question is required';
-    }
-    if (!formData.currentApprover?.trim()) {
-      newErrors.currentApprover = 'Current approver is required';
     }
 
     setErrors(newErrors);
@@ -685,16 +681,24 @@ const ApplicationDetailsModal: React.FC<{
           </div>
 
           {/* Admin Information */}
-          {application.primaryAppointmentEndDate && (
+          {(application.primaryAppointmentEndDate || application.fisEntered !== undefined) && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h4 className="text-lg font-medium text-gray-900 mb-3">Administrative Information</h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Primary Appointment End Date</label>
-                <p className="text-sm text-gray-900">
-                  {application.primaryAppointmentEndDate instanceof Date 
-                    ? application.primaryAppointmentEndDate.toLocaleDateString() 
-                    : application.primaryAppointmentEndDate ? new Date(application.primaryAppointmentEndDate).toLocaleDateString() : 'Not set'}
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Primary Appointment End Date</label>
+                  <p className="text-sm text-gray-900">
+                    {application.primaryAppointmentEndDate instanceof Date 
+                      ? application.primaryAppointmentEndDate.toLocaleDateString() 
+                      : application.primaryAppointmentEndDate ? new Date(application.primaryAppointmentEndDate).toLocaleDateString() : 'Not set'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">FIS Entered</label>
+                  <p className="text-sm text-gray-900">
+                    {application.fisEntered ? 'Yes' : 'No'}
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -834,11 +838,23 @@ const CurrentApplicationsTab: React.FC = () => {
             timestamp: new Date(item.timestamp)
           })) || []
         }));
+        console.log('Loaded applications from API:', applicationsWithDates.map(app => ({ id: app.id, name: app.facultyMember.name })));
+        const ids = applicationsWithDates.map(app => app.id);
+        const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+        if (duplicateIds.length > 0) {
+          console.warn('Found duplicate application IDs:', duplicateIds);
+        }
         setApplications(applicationsWithDates);
       } catch (error) {
         console.error('Failed to fetch applications:', error);
         // Fallback to mock data if API fails
         const allApplications = [...mockApplications, ...generateMockApplications(20)];
+        console.log('Loaded applications from mock data:', allApplications.map(app => ({ id: app.id, name: app.facultyMember.name })));
+        const mockIds = allApplications.map(app => app.id);
+        const duplicateMockIds = mockIds.filter((id, index) => mockIds.indexOf(id) !== index);
+        if (duplicateMockIds.length > 0) {
+          console.warn('Found duplicate mock application IDs:', duplicateMockIds);
+        }
         setApplications(allApplications);
       }
     };
@@ -946,11 +962,84 @@ const CurrentApplicationsTab: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleSaveApplication = (updatedApplication: Application) => {
-    setApplications(prev => prev.map(app => 
-      app.id === updatedApplication.id ? updatedApplication : app
-    ));
-    setEditingApplication(null);
+  const handleSaveApplication = async (updatedApplication: Application) => {
+    try {
+      // Prepare the data for the API call
+      const updateData = {
+        // Admin fields
+        fisEntered: updatedApplication.fisEntered,
+        processingTimeWeeks: updatedApplication.processingTimeWeeks != null && String(updatedApplication.processingTimeWeeks) !== '' ? Number(updatedApplication.processingTimeWeeks) : undefined,
+        primaryAppointmentEndDate: updatedApplication.primaryAppointmentEndDate 
+          ? (updatedApplication.primaryAppointmentEndDate instanceof Date 
+              ? updatedApplication.primaryAppointmentEndDate.toISOString().split('T')[0]
+              : updatedApplication.primaryAppointmentEndDate)
+          : null,
+        
+        // Application fields
+        status: updatedApplication.status,
+        currentApprover: updatedApplication.currentApprover,
+        
+        // Question fields
+        contributionsQuestion: updatedApplication.contributionsQuestion,
+        alignmentQuestion: updatedApplication.alignmentQuestion,
+        enhancementQuestion: updatedApplication.enhancementQuestion,
+        
+        // Faculty member fields
+        facultyMember: {
+          name: updatedApplication.facultyMember.name,
+          email: updatedApplication.facultyMember.email,
+          title: updatedApplication.facultyMember.title,
+          college: updatedApplication.facultyMember.college,
+          department: updatedApplication.facultyMember.department,
+          institution: updatedApplication.facultyMember.institution
+        }
+      };
+
+      const response = await fetch(`http://localhost:3001/api/applications/${updatedApplication.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        let errorMessage = errorData.error || 'Failed to update application';
+        if (errorData.details && Array.isArray(errorData.details)) {
+          const validationErrors = errorData.details.map((detail: any) => `${detail.param}: ${detail.msg}`).join('\n');
+          errorMessage += '\n\nValidation Details:\n' + validationErrors;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      console.log('Server response after update:', result);
+      
+      // Update local state with the response data
+      console.log('Updating application with ID:', updatedApplication.id);
+      setApplications(prev => {
+        const updated = prev.map(app => {
+          if (app.id === updatedApplication.id) {
+            console.log('Found matching application to update:', app.id);
+            return { ...app, ...updatedApplication, ...result.data };
+          }
+          return app;
+        });
+        return updated;
+      });
+      
+      setEditingApplication(null);
+      
+      // Show success message (you might want to add a toast notification here)
+      console.log('Application updated successfully');
+      
+    } catch (error) {
+      console.error('Error saving application:', error);
+      // Show error message (you might want to add error handling UI here)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to save application: ${errorMessage}`);
+    }
   };
 
   const handleStatusUpdate = (updatedApplication: Application) => {

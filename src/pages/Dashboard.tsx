@@ -229,7 +229,7 @@ const Dashboard: React.FC = () => {
             Secondary Appointment Workflow Overview
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+        {/* <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
           <select 
             value={selectedTimeFrame}
             onChange={(e) => setSelectedTimeFrame(e.target.value as 'week' | 'month' | 'quarter')}
@@ -243,7 +243,7 @@ const Dashboard: React.FC = () => {
             <Download className="mr-2 h-4 w-4" />
             Export Data
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Executive Summary */}
