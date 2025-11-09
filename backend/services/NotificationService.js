@@ -91,6 +91,21 @@ class NotificationService {
         console.log(`✅ FIS entry notification sent for ${application.id}`);
       }
       
+      // If status moved to completed, send confirmation email to applicant
+      if (newStatus === 'completed') {
+        console.log(`📧 Status changed to Completed - sending confirmation email for ${application.id}`);
+        const primaryAppointment = `${facultyMember.college}, ${facultyMember.department || 'No Department'}`;
+        
+        await this.emailService.sendCompletionConfirmationEmail(
+          facultyMember.email,
+          applicantName,
+          application.id,
+          primaryAppointment,
+          application.primaryAppointmentEndDate
+        );
+        console.log(`✅ Completion confirmation email sent for ${application.id}`);
+      }
+      
     } catch (error) {
       console.error('❌ Failed to send status change notification:', error.message);
       // Don't throw - we don't want to block status updates

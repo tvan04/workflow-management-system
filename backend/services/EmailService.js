@@ -476,6 +476,111 @@ class EmailService {
     }
   }
 
+  async sendCompletionConfirmationEmail(applicantEmail, applicantName, applicationId, primaryAppointment, primaryAppointmentEndDate) {
+    if (!this.apiKey) {
+      throw new Error('Email API key not configured');
+    }
+
+    if (!applicantEmail || !applicantEmail.trim()) {
+      console.log('No applicant email provided, skipping completion confirmation email');
+      return;
+    }
+
+    // Format the end date for display
+    let endDateText = 'Please contact CCC Faculty Affairs for specific term details';
+    if (primaryAppointmentEndDate) {
+      try {
+        const endDate = new Date(primaryAppointmentEndDate);
+        endDateText = endDate.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      } catch (error) {
+        console.warn('Could not format end date:', primaryAppointmentEndDate);
+      }
+    }
+
+    const subject = `Secondary Appointment Approved & Complete - ${applicationId}`;
+    const body = `
+      <p>Dear ${applicantName},</p>
+      
+      <p>Congratulations! We are pleased to inform you that your application for a secondary appointment at the College of Connected Computing has been <strong>approved and completed</strong>.</p>
+      
+      <div style="margin: 20px 0; padding: 20px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px;">
+        <h3 style="margin: 0 0 15px 0; color: #155724; font-size: 18px;">Appointment Details</h3>
+        <p style="margin: 5px 0; color: #155724;"><strong>Application ID:</strong> ${applicationId}</p>
+        <p style="margin: 5px 0; color: #155724;"><strong>Appointee:</strong> ${applicantName}</p>
+        <p style="margin: 5px 0; color: #155724;"><strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
+        <p style="margin: 5px 0; color: #155724;"><strong>Secondary Appointment Effective Until:</strong> ${endDateText}</p>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
+        <p style="margin: 0; font-weight: bold; color: #0056b3;">Welcome to the College of Connected Computing!</p>
+        <p style="margin: 5px 0 0 0; color: #0056b3;">We look forward to your contributions to our interdisciplinary mission.</p>
+      </div>
+      
+      <p>If you have any questions about your appointment or need assistance with CCC resources, please contact the Faculty Affairs office at <a href="mailto:cccfacultyaffairs@vanderbilt.edu">cccfacultyaffairs@vanderbilt.edu</a>.</p>
+      
+      <p>Thank you for your interest in the College of Connected Computing, and congratulations once again on your successful appointment!</p>
+      
+      <p>Best regards,<br/>
+      <strong>CCC Faculty Affairs</strong><br/>
+      College of Connected Computing<br/>
+      Vanderbilt University</p>
+    `;
+
+    const payload = {
+      data: {
+        subject: subject,
+        body: body,
+        to_recipients: [applicantEmail.trim()],
+        cc_recipients: [],
+        bcc_recipients: [],
+        importance: 'high'
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`
+    };
+
+    try {
+      console.log(`Sending completion confirmation email to applicant: ${applicantEmail}`);
+      
+      const response = await axios.post(this.apiUrl, payload, { 
+        headers,
+        timeout: 30000
+      });
+
+      if (response.status === 200) {
+        console.log('✅ Completion confirmation email sent successfully to applicant');
+        return {
+          success: true,
+          recipient: applicantEmail,
+          messageId: response.data?.data?.id || 'unknown'
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send completion confirmation email to applicant:', error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
+      // Don't throw the error - we don't want email failures to block status updates
+      return {
+        success: false,
+        error: error.message,
+        recipient: applicantEmail
+      };
+    }
+  }
+
   // Helper method to extract all approver emails from an application
   getApproverEmails(applicationData) {
     const emails = [];
