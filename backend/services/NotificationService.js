@@ -106,6 +106,20 @@ class NotificationService {
         console.log(`✅ Completion confirmation email sent for ${application.id}`);
       }
       
+      // If status moved to rejected, send rejection notification to applicant
+      if (newStatus === 'rejected') {
+        console.log(`📧 Status changed to Rejected - sending rejection notification for ${application.id}`);
+        const primaryAppointment = `${facultyMember.college}, ${facultyMember.department || 'No Department'}`;
+        
+        await this.emailService.sendRejectionNotificationEmail(
+          facultyMember.email,
+          applicantName,
+          application.id,
+          primaryAppointment
+        );
+        console.log(`✅ Rejection notification email sent for ${application.id}`);
+      }
+      
     } catch (error) {
       console.error('❌ Failed to send status change notification:', error.message);
       // Don't throw - we don't want to block status updates

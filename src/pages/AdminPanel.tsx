@@ -147,7 +147,7 @@ const ApplicationEditModal: React.FC<{
 }> = ({ application, onClose, onSave }) => {
   const [formData, setFormData] = useState<Application>({
     ...application,
-    primaryAppointmentEndDate: application.primaryAppointmentEndDate || undefined
+    primaryAppointmentEndDate: application.primaryAppointmentEndDate ? new Date(application.primaryAppointmentEndDate) : undefined
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -355,7 +355,7 @@ const ApplicationEditModal: React.FC<{
                   </label>
                   <input
                     type="date"
-                    value={formData.primaryAppointmentEndDate ? formData.primaryAppointmentEndDate.toISOString().split('T')[0] : ''}
+                    value={formData.primaryAppointmentEndDate ? (formData.primaryAppointmentEndDate instanceof Date ? formData.primaryAppointmentEndDate.toISOString().split('T')[0] : formData.primaryAppointmentEndDate) : ''}
                     onChange={(e) => handleInputChange('primaryAppointmentEndDate', e.target.value ? new Date(e.target.value) : undefined)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
                   />
@@ -693,7 +693,7 @@ const ApplicationDetailsModal: React.FC<{
                 <p className="text-sm text-gray-900">
                   {application.primaryAppointmentEndDate instanceof Date 
                     ? application.primaryAppointmentEndDate.toLocaleDateString() 
-                    : new Date(application.primaryAppointmentEndDate).toLocaleDateString()}
+                    : application.primaryAppointmentEndDate ? new Date(application.primaryAppointmentEndDate).toLocaleDateString() : 'Not set'}
                 </p>
               </div>
             </div>

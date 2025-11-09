@@ -404,7 +404,7 @@ class EmailService {
       <strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
       
       <div style="margin: 20px 0; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px;">
-        <p style="margin: 0 0 10px 0; font-weight: bold; color: #155724;">✅ Status: APPROVED</p>
+        <p style="margin: 0 0 10px 0; font-weight: bold; color: #155724;">Status: APPROVED</p>
         <p style="margin: 0; color: #155724;">This application has completed all required approvals and is now ready for FIS entry.</p>
       </div>
       
@@ -566,6 +566,93 @@ class EmailService {
       }
     } catch (error) {
       console.error('❌ Failed to send completion confirmation email to applicant:', error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
+      // Don't throw the error - we don't want email failures to block status updates
+      return {
+        success: false,
+        error: error.message,
+        recipient: applicantEmail
+      };
+    }
+  }
+
+  async sendRejectionNotificationEmail(applicantEmail, applicantName, applicationId, primaryAppointment) {
+    if (!this.apiKey) {
+      throw new Error('Email API key not configured');
+    }
+
+    if (!applicantEmail || !applicantEmail.trim()) {
+      console.log('No applicant email provided, skipping rejection notification email');
+      return;
+    }
+
+    const subject = `Secondary Appointment Application Update - ${applicationId}`;
+    const body = `
+      <p>Dear ${applicantName},</p>
+      
+      <p>Thank you for your interest in a secondary appointment with the College of Connected Computing at Vanderbilt University.</p>
+      
+      <p>After careful consideration, we regret to inform you that we are unable to approve your application for a secondary appointment at this time.</p>
+      
+      <div style="margin: 20px 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px;">
+        <p style="margin: 5px 0; color: #721c24;"><strong>Application ID:</strong> ${applicationId}</p>
+        <p style="margin: 5px 0; color: #721c24;"><strong>Applicant:</strong> ${applicantName}</p>
+        <p style="margin: 5px 0; color: #721c24;"><strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
+      </div>
+      
+      <p>We understand this may be disappointing news. Please know that this decision reflects the highly competitive nature of our secondary appointment program and current capacity constraints, rather than any reflection on your qualifications or contributions.</p>
+      
+      <p>If you have any questions about this decision or would like information about other ways to engage with the College of Connected Computing, please contact the Faculty Affairs office at <a href="mailto:cccfacultyaffairs@vanderbilt.edu">cccfacultyaffairs@vanderbilt.edu</a>.</p>
+      
+      <p>We appreciate your interest in the College of Connected Computing and hope for opportunities to collaborate in the future.</p>
+      
+      <p>Best regards,<br/>
+      <strong>CCC Faculty Affairs</strong><br/>
+      College of Connected Computing<br/>
+      Vanderbilt University</p>
+    `;
+
+    const payload = {
+      data: {
+        subject: subject,
+        body: body,
+        to_recipients: [applicantEmail.trim()],
+        cc_recipients: [],
+        bcc_recipients: [],
+        importance: 'normal'
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`
+    };
+
+    try {
+      console.log(`Sending rejection notification email to applicant: ${applicantEmail}`);
+      
+      const response = await axios.post(this.apiUrl, payload, { 
+        headers,
+        timeout: 30000
+      });
+
+      if (response.status === 200) {
+        console.log('✅ Rejection notification email sent successfully to applicant');
+        return {
+          success: true,
+          recipient: applicantEmail,
+          messageId: response.data?.data?.id || 'unknown'
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send rejection notification email to applicant:', error.message);
       
       if (error.response) {
         console.error('Response status:', error.response.status);
