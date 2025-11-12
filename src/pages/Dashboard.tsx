@@ -68,7 +68,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
       'submitted': 'Submitted',
       'ccc_review': 'CCC Review',
       'ccc_associate_dean_review': 'CCC Associate Dean Review',
-      'awaiting_primary_approval': 'Awaiting Primary Approval',
+      'awaiting_primary_approval': 'Primary Approval',
       'rejected': 'Rejected',
       'fis_entry_pending': 'FIS Entry Pending',
       'completed': 'Completed',
@@ -94,9 +94,6 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
           <div>
             <div className="text-sm font-semibold text-vanderbilt-black-900">
               {application.facultyMember.name}
-            </div>
-            <div className="text-sm text-surface-600 font-medium">
-              {application.facultyMember.department}
             </div>
           </div>
         </div>
@@ -151,7 +148,6 @@ const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [trendsData, setTrendsData] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
   // const [selectedTimeFrame, setSelectedTimeFrame] = useState<'week' | 'month' | 'quarter'>('month');
 
   // Load real data from API
