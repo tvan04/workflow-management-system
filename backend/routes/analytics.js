@@ -104,18 +104,7 @@ router.get('/export', [
     }
 
     // Build query with date filters
-    let query = `
-      SELECT 
-        a.*,
-        f.name as faculty_name,
-        f.email as faculty_email,
-        f.title as faculty_title,
-        f.department as faculty_department,
-        f.college as faculty_college,
-        f.institution as faculty_institution
-      FROM applications a
-      JOIN faculty_members f ON a.faculty_member_id = f.id
-    `;
+    let query = `SELECT * FROM applications`;
 
     const conditions = [];
     const params = [];
@@ -238,15 +227,14 @@ router.get('/college-breakdown', async (req, res) => {
   try {
     const query = `
       SELECT 
-        f.college,
+        faculty_college as college,
         COUNT(*) as total_applications,
-        COUNT(CASE WHEN a.status = 'completed' THEN 1 END) as completed,
-        COUNT(CASE WHEN a.status = 'rejected' THEN 1 END) as rejected,
-        COUNT(CASE WHEN a.status IN ('submitted', 'ccc_review', 'ccc_associate_dean_review', 'faculty_vote', 'awaiting_primary_approval', 'approved', 'fis_entry_pending') THEN 1 END) as in_progress,
-        AVG(CASE WHEN a.processing_time_weeks IS NOT NULL THEN a.processing_time_weeks END) as avg_processing_time
-      FROM applications a
-      JOIN faculty_members f ON a.faculty_member_id = f.id
-      GROUP BY f.college
+        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected,
+        COUNT(CASE WHEN status IN ('submitted', 'ccc_review', 'ccc_associate_dean_review', 'faculty_vote', 'awaiting_primary_approval', 'approved', 'fis_entry_pending') THEN 1 END) as in_progress,
+        AVG(CASE WHEN processing_time_weeks IS NOT NULL THEN processing_time_weeks END) as avg_processing_time
+      FROM applications
+      GROUP BY faculty_college
       ORDER BY total_applications DESC
     `;
 

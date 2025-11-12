@@ -34,19 +34,51 @@ const upload = multer({
   }
 });
 
+// College requirements helper function
+const getCollegeRequirements = (collegeName) => {
+  const colleges = {
+    'School of Engineering': {
+      hasDepartments: true,
+      requiredApprovers: ['departmentChair', 'dean']
+    },
+    'College of Arts & Science': {
+      hasDepartments: true,
+      requiredApprovers: ['departmentChair', 'associateDean']
+    },
+    'School of Medicine - Basic Sciences': {
+      hasDepartments: true,
+      requiredApprovers: ['departmentChair']
+    },
+    'Owen Graduate School of Management': {
+      hasDepartments: false,
+      requiredApprovers: ['associateDean', 'dean']
+    },
+    'Blair School of Music': {
+      hasDepartments: false,
+      requiredApprovers: ['associateDean', 'dean']
+    },
+    'Peabody College': {
+      hasDepartments: true,
+      requiredApprovers: ['departmentChair', 'associateDean']
+    }
+  };
+  
+  return colleges[collegeName] || { hasDepartments: true, requiredApprovers: ['departmentChair'] };
+};
+
 // Validation middleware
 const validateApplication = [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('title').trim().notEmpty().withMessage('Title is required'),
+  body('department').optional().trim(),
   body('college').trim().notEmpty().withMessage('College is required'),
+  body('institution').trim().notEmpty().withMessage('Institution is required'),
   body('appointmentType').isIn(['initial', 'secondary']).withMessage('Valid appointment type is required'),
   body('effectiveDate').optional({ values: 'falsy' }).isDate().withMessage('Valid effective date is required'),
   body('contributionsQuestion').trim().notEmpty().withMessage('Contributions question is required'),
   body('alignmentQuestion').trim().notEmpty().withMessage('Alignment question is required'),
   body('enhancementQuestion').trim().notEmpty().withMessage('Enhancement question is required'),
-  body('deanName').trim().notEmpty().withMessage('Dean name is required'),
-  body('deanEmail').isEmail().withMessage('Valid dean email is required'),
   
   // Custom email validation
   body('email').custom(value => {
@@ -56,20 +88,64 @@ const validateApplication = [
     return true;
   }),
   
-  // Conditional validation for department chair (if college has departments)
+  // Dynamic validation based on college requirements
   body('departmentChairName').custom((value, { req }) => {
-    if (req.body.collegeHasDepartments === 'true' || req.body.collegeHasDepartments === true) {
+    const collegeReqs = getCollegeRequirements(req.body.college);
+    if (collegeReqs.requiredApprovers.includes('departmentChair')) {
       if (!value || value.trim().length === 0) {
-        throw new Error('Department chair name is required for colleges with departments');
+        throw new Error('Department chair name is required for this college');
       }
     }
     return true;
   }),
   
   body('departmentChairEmail').custom((value, { req }) => {
-    if (req.body.collegeHasDepartments === 'true' || req.body.collegeHasDepartments === true) {
+    const collegeReqs = getCollegeRequirements(req.body.college);
+    if (collegeReqs.requiredApprovers.includes('departmentChair')) {
       if (!value || !FacultyMember.validateEmail(value)) {
-        throw new Error('Valid department chair email is required for colleges with departments');
+        throw new Error('Valid department chair email is required for this college');
+      }
+    }
+    return true;
+  }),
+  
+  // Dynamic dean validation
+  body('deanName').custom((value, { req }) => {
+    const collegeReqs = getCollegeRequirements(req.body.college);
+    if (collegeReqs.requiredApprovers.includes('dean')) {
+      if (!value || value.trim().length === 0) {
+        throw new Error('Dean name is required for this college');
+      }
+    }
+    return true;
+  }),
+  
+  body('deanEmail').custom((value, { req }) => {
+    const collegeReqs = getCollegeRequirements(req.body.college);
+    if (collegeReqs.requiredApprovers.includes('dean')) {
+      if (!value || !FacultyMember.validateEmail(value)) {
+        throw new Error('Valid dean email is required for this college');
+      }
+    }
+    return true;
+  }),
+  
+  // Dynamic associate dean validation  
+  body('seniorAssociateDeanName').custom((value, { req }) => {
+    const collegeReqs = getCollegeRequirements(req.body.college);
+    if (collegeReqs.requiredApprovers.includes('associateDean')) {
+      if (!value || value.trim().length === 0) {
+        throw new Error('Senior associate dean name is required for this college');
+      }
+    }
+    return true;
+  }),
+  
+  body('seniorAssociateDeanEmail').custom((value, { req }) => {
+    const collegeReqs = getCollegeRequirements(req.body.college);
+    if (collegeReqs.requiredApprovers.includes('associateDean')) {
+      if (!value || !FacultyMember.validateEmail(value)) {
+        throw new Error('Valid senior associate dean email is required for this college');
       }
     }
     return true;
@@ -151,13 +227,13 @@ router.get('/my-applications', [
       });
     }
 
-    // Use the existing search method with exact email match
-    const applications = await Application.search(req.query.email);
+    // Query applications directly by faculty email (embedded data)
+    const applications = await Application.findAll({ 
+      faculty_email: req.query.email 
+    });
     
-    // Filter to exact email matches only (since search uses LIKE which could be partial matches)
-    const exactMatches = applications.filter(app => 
-      app.facultyMember && app.facultyMember.email === req.query.email
-    );
+    // Since we're querying directly by email, all results should be exact matches
+    const exactMatches = applications;
     
     res.json({
       data: exactMatches.map(app => app.toJSON()),
@@ -197,10 +273,13 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
   console.log('=== APPLICATION SUBMISSION START ===');
   console.log('Request body name:', req.body.name);
   console.log('Request timestamp:', new Date().toISOString());
+  console.log('College:', req.body.college);
+  console.log('College requirements:', getCollegeRequirements(req.body.college));
   
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({ 
         error: 'Validation failed', 
         details: errors.array() 
@@ -211,21 +290,15 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
       return res.status(400).json({ error: 'CV file is required' });
     }
 
-    // Create or find faculty member
-    const facultyData = {
-      name: req.body.name,
-      email: req.body.email,
-      title: req.body.title,
-      department: req.body.department,
-      college: req.body.college,
-      institution: FacultyMember.validateInstitution(req.body.email)
-    };
-
-    const faculty = await FacultyMember.findOrCreate(facultyData);
-
-    // Create application
+    // Create application with embedded faculty data
     const applicationData = {
-      facultyMemberId: faculty.id,
+      // Faculty information
+      facultyName: req.body.name,
+      facultyEmail: req.body.email,
+      facultyTitle: req.body.title,
+      facultyDepartment: req.body.department,
+      facultyCollege: req.body.college,
+      facultyInstitution: FacultyMember.validateInstitution(req.body.email),
       appointmentType: req.body.appointmentType,
       effectiveDate: null, // No longer collected
       duration: null, // No longer collected
@@ -253,9 +326,6 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
     console.log('About to save application with ID:', application.id);
     await application.save();
     console.log('Application saved successfully with ID:', application.id);
-
-    // Add faculty member data for response
-    application.facultyMember = faculty.toJSON();
 
     // Send notification to faculty and CCC staff
     try {

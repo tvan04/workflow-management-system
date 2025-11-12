@@ -94,16 +94,10 @@ class FacultyMember {
   }
 
   static async findOrCreate(facultyData) {
-    let faculty = await FacultyMember.findByEmail(facultyData.email);
-    
-    if (!faculty) {
-      faculty = new FacultyMember(facultyData);
-      await faculty.save();
-    } else {
-      // Update existing faculty member with any new data
-      await faculty.update(facultyData);
-    }
-    
+    // Always create a new faculty member record for each application
+    // This ensures each application maintains its own snapshot of faculty data
+    const faculty = new FacultyMember(facultyData);
+    await faculty.save();
     return faculty;
   }
 

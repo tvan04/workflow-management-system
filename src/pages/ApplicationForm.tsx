@@ -354,6 +354,7 @@ const ApplicationForm: React.FC = () => {
       formDataToSubmit.append('title', formData.title);
       formDataToSubmit.append('department', formData.department);
       formDataToSubmit.append('college', formData.college);
+      formDataToSubmit.append('institution', formData.institution);
       formDataToSubmit.append('appointmentType', formData.appointmentType);
       formDataToSubmit.append('contributionsQuestion', formData.contributionsQuestion);
       formDataToSubmit.append('alignmentQuestion', formData.alignmentQuestion);
@@ -416,7 +417,7 @@ const ApplicationForm: React.FC = () => {
       submissionInProgress.current = false;
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, submitSuccess, submissionId]);
+  }, [formData, validateForm, submitSuccess, submissionId, colleges]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

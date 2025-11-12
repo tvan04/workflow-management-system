@@ -180,6 +180,32 @@ const SignaturePage: React.FC = () => {
     );
   }
 
+  // Check if this approver has already reviewed the application
+  const hasAlreadyReviewed = application.statusHistory?.some(
+    (historyItem) => historyItem.approver === approverEmail
+  ) || 
+  // Also check if application is in a final state
+  ['rejected', 'fis_entry_pending', 'completed'].includes(application.status);
+
+  if (hasAlreadyReviewed) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto text-center">
+          <CheckCircle className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Already Reviewed</h1>
+          <p className="text-gray-600 mb-6">
+            This application has already been reviewed for approval.
+          </p>
+          <div className="bg-white border border-gray-200 rounded-lg p-4 text-left">
+            <p className="text-sm text-gray-600">Application: {application.id}</p>
+            <p className="text-sm text-gray-600">Faculty: {application.facultyMember.name}</p>
+            <p className="text-sm text-gray-600">Current Status: {application.status.replace('_', ' ').toUpperCase()}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -5,7 +5,15 @@ const db = require('../config/database');
 class Application {
   constructor(data = {}) {
     this.id = data.id || `APP-${moment().format('YYYY')}-${uuidv4().substring(0, 8).toUpperCase()}`;
-    this.facultyMemberId = data.facultyMemberId || data.faculty_member_id;
+    
+    // Faculty information (embedded directly)
+    this.facultyName = data.facultyName || data.faculty_name;
+    this.facultyEmail = data.facultyEmail || data.faculty_email;
+    this.facultyTitle = data.facultyTitle || data.faculty_title;
+    this.facultyDepartment = data.facultyDepartment || data.faculty_department;
+    this.facultyCollege = data.facultyCollege || data.faculty_college;
+    this.facultyInstitution = data.facultyInstitution || data.faculty_institution;
+    
     this.status = data.status || 'ccc_review';
     this.appointmentType = data.appointmentType || data.appointment_type;
     this.effectiveDate = data.effectiveDate || data.effective_date;
@@ -20,15 +28,15 @@ class Application {
     this.cvFileSize = data.cvFileSize || data.cv_file_size;
     this.cvMimeType = data.cvMimeType || data.cv_mime_type;
     
-    // Approval chain - support both camelCase and snake_case
-    this.departmentChairName = data.departmentChairName || data.department_chair_name;
-    this.departmentChairEmail = data.departmentChairEmail || data.department_chair_email;
-    this.divisionChairName = data.divisionChairName || data.division_chair_name;
-    this.divisionChairEmail = data.divisionChairEmail || data.division_chair_email;
-    this.deanName = data.deanName || data.dean_name;
-    this.deanEmail = data.deanEmail || data.dean_email;
-    this.seniorAssociateDeanName = data.seniorAssociateDeanName || data.senior_associate_dean_name;
-    this.seniorAssociateDeanEmail = data.seniorAssociateDeanEmail || data.senior_associate_dean_email;
+    // Approval chain - support both camelCase and snake_case, default to empty string
+    this.departmentChairName = data.departmentChairName || data.department_chair_name || '';
+    this.departmentChairEmail = data.departmentChairEmail || data.department_chair_email || '';
+    this.divisionChairName = data.divisionChairName || data.division_chair_name || '';
+    this.divisionChairEmail = data.divisionChairEmail || data.division_chair_email || '';
+    this.deanName = data.deanName || data.dean_name || '';
+    this.deanEmail = data.deanEmail || data.dean_email || '';
+    this.seniorAssociateDeanName = data.seniorAssociateDeanName || data.senior_associate_dean_name || '';
+    this.seniorAssociateDeanEmail = data.seniorAssociateDeanEmail || data.senior_associate_dean_email || '';
     this.hasDepartments = data.hasDepartments !== undefined ? data.hasDepartments : (data.has_departments !== undefined ? data.has_departments : true);
     
     // Tracking fields - support both camelCase and snake_case
@@ -44,7 +52,8 @@ class Application {
   async save() {
     const query = `
       INSERT INTO applications (
-        id, faculty_member_id, status, appointment_type, effective_date, duration,
+        id, faculty_name, faculty_email, faculty_title, faculty_department, faculty_college, faculty_institution,
+        status, appointment_type, effective_date, duration,
         rationale, contributions_question, alignment_question, enhancement_question, 
         cv_file_path, cv_file_name, cv_file_data, cv_file_size, cv_mime_type,
         department_chair_name, department_chair_email,
@@ -52,11 +61,12 @@ class Application {
         senior_associate_dean_name, senior_associate_dean_email, has_departments,
         submitted_at, updated_at, current_approver, fis_entered, fis_entry_date,
         processing_time_weeks, primary_appointment_end_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
-      this.id, this.facultyMemberId, this.status, this.appointmentType, this.effectiveDate,
+      this.id, this.facultyName, this.facultyEmail, this.facultyTitle, this.facultyDepartment, this.facultyCollege, this.facultyInstitution,
+      this.status, this.appointmentType, this.effectiveDate,
       this.duration, this.rationale, this.contributionsQuestion, this.alignmentQuestion, this.enhancementQuestion, 
       this.cvFilePath, this.cvFileName, this.cvFileData, this.cvFileSize, this.cvMimeType,
       this.departmentChairName, this.departmentChairEmail, this.divisionChairName,
@@ -183,7 +193,15 @@ class Application {
   toJSON() {
     return {
       id: this.id,
-      facultyMember: this.facultyMember,
+      facultyMember: {
+        id: this.id, // Use application ID as faculty ID for compatibility
+        name: this.facultyName,
+        email: this.facultyEmail,
+        title: this.facultyTitle,
+        department: this.facultyDepartment,
+        college: this.facultyCollege,
+        institution: this.facultyInstitution
+      },
       approvalChain: {
         departmentChair: this.departmentChairName ? {
           name: this.departmentChairName,
@@ -226,28 +244,12 @@ class Application {
 
   // Static methods
   static async findById(id) {
-    const query = `
-      SELECT a.*, f.name as faculty_name, f.email as faculty_email, 
-             f.title as faculty_title, f.department as faculty_department,
-             f.college as faculty_college, f.institution as faculty_institution
-      FROM applications a
-      JOIN faculty_members f ON a.faculty_member_id = f.id
-      WHERE a.id = ?
-    `;
+    const query = `SELECT * FROM applications WHERE id = ?`;
     
     const row = await db.get(query, [id]);
     if (!row) return null;
 
     const app = new Application(row);
-    app.facultyMember = {
-      id: row.faculty_member_id,
-      name: row.faculty_name,
-      email: row.faculty_email,
-      title: row.faculty_title,
-      department: row.faculty_department,
-      college: row.faculty_college,
-      institution: row.faculty_institution
-    };
     
     // Load status history
     app.statusHistory = await app.getStatusHistory();
@@ -256,52 +258,42 @@ class Application {
   }
 
   static async findAll(filters = {}) {
-    let query = `
-      SELECT a.*, f.name as faculty_name, f.email as faculty_email, 
-             f.title as faculty_title, f.department as faculty_department,
-             f.college as faculty_college, f.institution as faculty_institution
-      FROM applications a
-      JOIN faculty_members f ON a.faculty_member_id = f.id
-    `;
+    let query = `SELECT * FROM applications`;
     
     const conditions = [];
     const params = [];
 
     if (filters.status) {
-      conditions.push('a.status = ?');
+      conditions.push('status = ?');
       params.push(filters.status);
     }
 
     if (filters.college) {
-      conditions.push('f.college = ?');
+      conditions.push('faculty_college = ?');
       params.push(filters.college);
     }
 
     if (filters.institution) {
-      conditions.push('f.institution = ?');
+      conditions.push('faculty_institution = ?');
       params.push(filters.institution);
+    }
+
+    if (filters.faculty_email) {
+      conditions.push('faculty_email = ?');
+      params.push(filters.faculty_email);
     }
 
     if (conditions.length > 0) {
       query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    query += ` ORDER BY a.submitted_at DESC`;
+    query += ` ORDER BY submitted_at DESC`;
 
     const rows = await db.all(query, params);
     
     const applications = [];
     for (const row of rows) {
       const app = new Application(row);
-      app.facultyMember = {
-        id: row.faculty_member_id,
-        name: row.faculty_name,
-        email: row.faculty_email,
-        title: row.faculty_title,
-        department: row.faculty_department,
-        college: row.faculty_college,
-        institution: row.faculty_institution
-      };
       
       // Load status history for each application
       app.statusHistory = await app.getStatusHistory();
@@ -314,13 +306,9 @@ class Application {
 
   static async search(query) {
     const searchQuery = `
-      SELECT DISTINCT a.*, f.name as faculty_name, f.email as faculty_email, 
-             f.title as faculty_title, f.department as faculty_department,
-             f.college as faculty_college, f.institution as faculty_institution
-      FROM applications a
-      JOIN faculty_members f ON a.faculty_member_id = f.id
-      WHERE f.name LIKE ? OR f.email LIKE ? OR a.id LIKE ?
-      ORDER BY a.submitted_at DESC
+      SELECT * FROM applications
+      WHERE faculty_name LIKE ? OR faculty_email LIKE ? OR id LIKE ?
+      ORDER BY submitted_at DESC
     `;
     
     const searchTerm = `%${query}%`;
@@ -329,15 +317,6 @@ class Application {
     const applications = [];
     for (const row of rows) {
       const app = new Application(row);
-      app.facultyMember = {
-        id: row.faculty_member_id,
-        name: row.faculty_name,
-        email: row.faculty_email,
-        title: row.faculty_title,
-        department: row.faculty_department,
-        college: row.faculty_college,
-        institution: row.faculty_institution
-      };
       
       // Load status history for each application
       app.statusHistory = await app.getStatusHistory();
@@ -386,28 +365,15 @@ class Application {
 
     // Get stalled applications (more than 7 days since update)
     const stalledQuery = `
-      SELECT a.*, f.name as faculty_name, f.email as faculty_email, 
-             f.title as faculty_title, f.department as faculty_department,
-             f.college as faculty_college, f.institution as faculty_institution
-      FROM applications a
-      JOIN faculty_members f ON a.faculty_member_id = f.id
-      WHERE a.status NOT IN ('completed', 'rejected') 
-      AND datetime(a.updated_at) < datetime('now', '-7 days')
-      ORDER BY a.updated_at ASC
+      SELECT * FROM applications
+      WHERE status NOT IN ('completed', 'rejected') 
+      AND datetime(updated_at) < datetime('now', '-7 days')
+      ORDER BY updated_at ASC
     `;
     const stalledRows = await db.all(stalledQuery);
     
     const stalledApplications = stalledRows.map(row => {
       const app = new Application(row);
-      app.facultyMember = {
-        id: row.faculty_member_id,
-        name: row.faculty_name,
-        email: row.faculty_email,
-        title: row.faculty_title,
-        department: row.faculty_department,
-        college: row.faculty_college,
-        institution: row.faculty_institution
-      };
       return app;
     });
 

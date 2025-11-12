@@ -78,28 +78,45 @@ class Database {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
 
-      // Applications table
+      // Applications table with embedded faculty data
       `CREATE TABLE IF NOT EXISTS applications (
         id TEXT PRIMARY KEY,
-        faculty_member_id TEXT NOT NULL,
+        
+        -- Faculty information (embedded directly)
+        faculty_name TEXT NOT NULL,
+        faculty_email TEXT NOT NULL,
+        faculty_title TEXT NOT NULL,
+        faculty_department TEXT,
+        faculty_college TEXT NOT NULL,
+        faculty_institution TEXT NOT NULL CHECK (faculty_institution IN ('vanderbilt', 'vumc')),
+        
+        -- Application details
         status TEXT NOT NULL CHECK (status IN (
           'submitted', 'ccc_review', 'ccc_associate_dean_review', 'faculty_vote', 'awaiting_primary_approval',
           'approved', 'rejected', 'fis_entry_pending', 'completed'
         )),
         appointment_type TEXT NOT NULL CHECK (appointment_type IN ('initial', 'secondary')),
         effective_date DATE,
-        duration TEXT NOT NULL CHECK (duration IN ('1year', '2year', '3year')),
-        rationale TEXT NOT NULL,
+        duration TEXT CHECK (duration IN ('1year', '2year', '3year')),
+        rationale TEXT,
+        contributions_question TEXT,
+        alignment_question TEXT,
+        enhancement_question TEXT,
+        
+        -- CV file information
         cv_file_path TEXT,
         cv_file_name TEXT,
+        cv_file_data BLOB,
+        cv_file_size INTEGER,
+        cv_mime_type TEXT,
         
         -- Approval chain
         department_chair_name TEXT,
         department_chair_email TEXT,
         division_chair_name TEXT,
         division_chair_email TEXT,
-        dean_name TEXT NOT NULL,
-        dean_email TEXT NOT NULL,
+        dean_name TEXT,
+        dean_email TEXT,
         senior_associate_dean_name TEXT,
         senior_associate_dean_email TEXT,
         has_departments BOOLEAN NOT NULL DEFAULT 1,
@@ -111,11 +128,7 @@ class Database {
         fis_entered BOOLEAN DEFAULT 0,
         fis_entry_date DATETIME,
         processing_time_weeks REAL,
-        
-        -- Admin fields
-        primary_appointment_end_date DATE,
-        
-        FOREIGN KEY (faculty_member_id) REFERENCES faculty_members (id) ON DELETE CASCADE
+        primary_appointment_end_date DATE
       )`,
 
       // Status history table
@@ -161,10 +174,8 @@ class Database {
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status)',
       'CREATE INDEX IF NOT EXISTS idx_applications_submitted_at ON applications(submitted_at)',
-      'CREATE INDEX IF NOT EXISTS idx_applications_faculty_member ON applications(faculty_member_id)',
+      'CREATE INDEX IF NOT EXISTS idx_applications_faculty_email ON applications(faculty_email)',
       'CREATE INDEX IF NOT EXISTS idx_status_history_application ON status_history(application_id)',
-      // Notification indexes removed
-      'CREATE INDEX IF NOT EXISTS idx_faculty_email ON faculty_members(email)',
       'CREATE INDEX IF NOT EXISTS idx_departments_college ON departments(college_id)'
     ];
 

@@ -821,7 +821,6 @@ const CurrentApplicationsTab: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   // Initialize applications data from API
   useEffect(() => {
@@ -847,7 +846,6 @@ const CurrentApplicationsTab: React.FC = () => {
         setApplications(applicationsWithDates);
       } catch (error) {
         console.error('Failed to fetch applications:', error);
-        setError('Unable to load applications. Please check your connection and try again.');
         setApplications([]);
       }
     };
