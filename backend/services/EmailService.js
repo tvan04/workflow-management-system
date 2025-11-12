@@ -1,4 +1,5 @@
 const axios = require('axios');
+const ApprovalTokenService = require('./ApprovalTokenService');
 require('dotenv').config();
 
 class EmailService {
@@ -15,34 +16,37 @@ class EmailService {
     }
   }
 
-  async sendApprovalNotification(approverEmails, applicantName, applicationId, primaryAppointment) {
+  async sendApprovalNotification(approverEmail, approverRole, approverName, applicantName, applicationId, primaryAppointment) {
     if (!this.apiKey) {
       throw new Error('Email API key not configured');
     }
 
-    if (!approverEmails || approverEmails.length === 0) {
-      console.log('No approver emails provided, skipping email notification');
-      return;
+    if (!approverEmail || !approverEmail.trim()) {
+      console.log('No approver email provided, skipping email notification');
+      return { success: false, error: 'No approver email provided' };
     }
 
-    // Filter out any null/undefined emails and restrict to test email only
-    const validEmails = approverEmails.filter(email => email && email.trim());
-
-    // Send individual emails with personalized approval links
-    const results = [];
-    
-    for (const approverEmail of validEmails) {
-      // Generate approval token (simple approach - in production use JWT or secure tokens)
-      const approvalToken = Buffer.from(`${applicationId}:${approverEmail}:${Date.now()}`).toString('base64');
+    try {
+      // Generate secure approval token using the new service
+      const approvalToken = await ApprovalTokenService.generateApprovalToken(
+        applicationId, 
+        approverEmail.trim(), 
+        approverRole, 
+        approverName
+      );
       
       // Construct personalized approval link
       const approvalLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/signature/${applicationId}?approver=${encodeURIComponent(approverEmail)}&token=${approvalToken}`;
       
-      const subject = `Secondary Appointment Application - Approval Required`;
+      // Get proper greeting based on role
+      const greeting = this.getApproverGreeting(approverRole, approverName);
+      const roleDescription = this.getApproverRoleDescription(approverRole);
+      
+      const subject = `Secondary Appointment Application - ${ApprovalTokenService.getApproverDisplayName(approverRole)} Approval Required`;
       const body = `
-        <p>Dear Approver,</p>
+        <p>Dear ${greeting},</p>
         
-        <p>A faculty member from your school and/or department has submitted an application for a secondary appointment at the College of Connected Computing at Vanderbilt University. Your approval is required to proceed with this request.</p>
+        <p>A faculty member has submitted an application for a secondary appointment at the College of Connected Computing at Vanderbilt University. ${roleDescription}</p>
         
         <p><strong>Applicant:</strong> ${applicantName}<br/>
         <strong>Application ID:</strong> ${applicationId}<br/>
@@ -53,7 +57,7 @@ class EmailService {
           <p style="margin: 0;"><a href="${approvalLink}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Review Application & Provide Decision</a></p>
         </div>
         
-        <p style="font-size: 12px; color: #666;">This link is personalized for you (${approverEmail}) and will allow you to view the complete application and provide your digital signature for approval or denial.</p>
+        <p style="font-size: 12px; color: #666;">This link is personalized for your role as ${ApprovalTokenService.getApproverDisplayName(approverRole)} and will allow you to view the complete application and provide your digital signature for approval or denial.</p>
         
         <p>If you have any questions regarding this secondary appointment request, please contact the Faculty Affairs office at <a href="mailto:cccfacultyaffairs@vanderbilt.edu">cccfacultyaffairs@vanderbilt.edu</a>.</p>
         
@@ -68,7 +72,7 @@ class EmailService {
         data: {
           subject: subject,
           body: body,
-          to_recipients: [approverEmail],
+          to_recipients: [approverEmail.trim()],
           cc_recipients: [],
           bcc_recipients: [],
           importance: 'normal'
@@ -80,54 +84,76 @@ class EmailService {
         'Authorization': `Bearer ${this.apiKey}`
       };
 
-      try {
-        console.log(`Sending personalized approval notification to: ${approverEmail}`);
-        console.log(`Approval link: ${approvalLink}`);
-        
-        const response = await axios.post(this.apiUrl, payload, { 
-          headers,
-          timeout: 30000
-        });
+      console.log(`Sending ${approverRole} approval notification to: ${approverEmail}`);
+      console.log(`Approval link: ${approvalLink}`);
+      
+      const response = await axios.post(this.apiUrl, payload, { 
+        headers,
+        timeout: 30000
+      });
 
-        if (response.status === 200) {
-          console.log(`✅ Approval notification sent successfully to ${approverEmail}`);
-          results.push({
-            success: true,
-            recipient: approverEmail,
-            messageId: response.data?.data?.id || 'unknown',
-            approvalLink: approvalLink
-          });
-        } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-      } catch (error) {
-        console.error(`❌ Failed to send approval notification to ${approverEmail}:`, error.message);
-        
-        if (error.response) {
-          console.error('Response status:', error.response.status);
-          console.error('Response data:', error.response.data);
-        }
-        
-        results.push({
-          success: false,
-          error: error.message,
-          recipient: approverEmail
-        });
+      if (response.status === 200) {
+        console.log(`✅ Approval notification sent successfully to ${approverEmail} (${approverRole})`);
+        return {
+          success: true,
+          recipient: approverEmail,
+          role: approverRole,
+          messageId: response.data?.data?.id || 'unknown',
+          approvalLink: approvalLink,
+          token: approvalToken
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+    } catch (error) {
+      console.error(`❌ Failed to send approval notification to ${approverEmail} (${approverRole}):`, error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
+      return {
+        success: false,
+        error: error.message,
+        recipient: approverEmail,
+        role: approverRole
+      };
     }
+  }
 
-    // Return summary of all email attempts
-    const successCount = results.filter(r => r.success).length;
-    const totalCount = results.length;
-    
-    console.log(`📧 Approval notification summary: ${successCount}/${totalCount} emails sent successfully`);
-    
-    return {
-      success: successCount > 0,
-      totalSent: successCount,
-      totalAttempted: totalCount,
-      results: results
-    };
+  getApproverGreeting(approverRole, approverName = null) {
+    switch (approverRole) {
+      case 'ccc_associate_dean':
+        return 'CCC Associate Dean';
+      case 'department_chair':
+        return approverName || 'Department Chair';
+      case 'division_chair':
+        return approverName || 'Division Chair';
+      case 'dean':
+        return approverName || 'Dean';
+      case 'senior_associate_dean':
+        return approverName || 'Senior Associate Dean';
+      default:
+        return approverName || 'Approver';
+    }
+  }
+
+  getApproverRoleDescription(approverRole) {
+    switch (approverRole) {
+      case 'ccc_associate_dean':
+        return 'As the CCC Associate Dean, your review and approval is required to proceed with this request.';
+      case 'department_chair':
+        return 'As the Department Chair, your approval is required for this faculty member from your department.';
+      case 'division_chair':
+        return 'As the Division Chair, your approval is required for this faculty member from your division.';
+      case 'dean':
+        return 'As the Dean, your approval is required for this faculty member from your school/college.';
+      case 'senior_associate_dean':
+        return 'As the Senior Associate Dean, your approval is required for this faculty member from your school/college.';
+      default:
+        return 'Your approval is required to proceed with this request.';
+    }
   }
 
   async sendCCCFacultyNotification(applicantName, applicationId, primaryAppointment) {

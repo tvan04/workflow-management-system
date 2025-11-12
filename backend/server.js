@@ -17,8 +17,16 @@ const settingsRoutes = require('./routes/settings');
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
+// Security middleware with CSP configuration for iframe embedding
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      frameSrc: ["'self'"],
+      frameAncestors: ["'self'"],
+    },
+  },
+}));
 
 // Rate limiting
 const limiter = rateLimit({

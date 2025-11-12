@@ -138,7 +138,23 @@ class Database {
         status TEXT NOT NULL,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         approver TEXT,
+        approver_token TEXT,
         notes TEXT,
+        FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
+      )`,
+
+      // Approval tokens table
+      `CREATE TABLE IF NOT EXISTS approval_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token TEXT NOT NULL UNIQUE,
+        application_id TEXT NOT NULL,
+        approver_email TEXT NOT NULL,
+        approver_role TEXT NOT NULL,
+        approver_name TEXT NOT NULL,
+        used BOOLEAN DEFAULT FALSE,
+        used_at DATETIME,
+        expires_at DATETIME NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
       )`,
 
@@ -176,6 +192,9 @@ class Database {
       'CREATE INDEX IF NOT EXISTS idx_applications_submitted_at ON applications(submitted_at)',
       'CREATE INDEX IF NOT EXISTS idx_applications_faculty_email ON applications(faculty_email)',
       'CREATE INDEX IF NOT EXISTS idx_status_history_application ON status_history(application_id)',
+      'CREATE INDEX IF NOT EXISTS idx_status_history_token ON status_history(approver_token)',
+      'CREATE INDEX IF NOT EXISTS idx_approval_tokens_token ON approval_tokens(token)',
+      'CREATE INDEX IF NOT EXISTS idx_approval_tokens_application ON approval_tokens(application_id)',
       'CREATE INDEX IF NOT EXISTS idx_departments_college ON departments(college_id)'
     ];
 
@@ -207,6 +226,15 @@ class Database {
       if (!hasCvMimeTypeColumn) {
         console.log('Adding cv_mime_type column to applications table...');
         await this.run('ALTER TABLE applications ADD COLUMN cv_mime_type TEXT');
+      }
+
+      // Check if approver_token column exists in status_history table
+      const statusHistoryColumns = await this.all("PRAGMA table_info(status_history)");
+      const hasApproverTokenColumn = statusHistoryColumns.some(col => col.name === 'approver_token');
+      
+      if (!hasApproverTokenColumn) {
+        console.log('Adding approver_token column to status_history table...');
+        await this.run('ALTER TABLE status_history ADD COLUMN approver_token TEXT');
       }
     } catch (error) {
       console.error('Error adding missing columns:', error);

@@ -133,12 +133,12 @@ class Application {
     return this;
   }
 
-  async addStatusHistory(status, approver = null, notes = null) {
+  async addStatusHistory(status, approver = null, notes = null, approverToken = null) {
     const query = `
-      INSERT INTO status_history (application_id, status, approver, notes)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO status_history (application_id, status, approver, notes, approver_token)
+      VALUES (?, ?, ?, ?, ?)
     `;
-    await db.run(query, [this.id, status, approver, notes]);
+    await db.run(query, [this.id, status, approver, notes, approverToken]);
   }
 
   getNextApprover(status) {

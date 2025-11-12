@@ -37,6 +37,9 @@ const SignaturePage: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [signatureError, setSignatureError] = useState('');
 
+  // Token validation state
+  const [tokenValidation, setTokenValidation] = useState<{valid: boolean, used: boolean, message: string} | null>(null);
+
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -65,6 +68,31 @@ const SignaturePage: React.FC = () => {
 
     loadApplication();
   }, [applicationId, approverEmail, token]);
+
+  // Token validation effect
+  useEffect(() => {
+    const validateToken = async () => {
+      if (!token || !applicationId) return;
+      
+      try {
+        const response = await fetch(`http://localhost:3001/api/applications/validate-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, applicationId })
+        });
+        
+        const result = await response.json();
+        setTokenValidation(result);
+      } catch (error) {
+        console.error('Token validation error:', error);
+        setTokenValidation({ valid: false, used: false, message: 'Token validation failed' });
+      }
+    };
+
+    if (application) {
+      validateToken();
+    }
+  }, [token, applicationId, application]);
 
   const validateSignature = (inputSignature: string): boolean => {
     if (!inputSignature.trim()) {
@@ -107,8 +135,23 @@ const SignaturePage: React.FC = () => {
         notes: notes.trim() || undefined
       };
 
-      // Call approval API
-      await applicationApi.processApproval(approvalData);
+      // Call approval API using the new token-based endpoint
+      const response = await fetch(`http://localhost:3001/api/applications/${applicationId}/approve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          approverEmail: approverEmail!,
+          token: token!,
+          action: selectedAction,
+          signature: signature.trim(),
+          notes: notes.trim() || undefined
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
       
       setSuccess(true);
     } catch (error) {
@@ -180,26 +223,26 @@ const SignaturePage: React.FC = () => {
     );
   }
 
-  // Check if this approver has already reviewed the application
-  const hasAlreadyReviewed = application.statusHistory?.some(
-    (historyItem) => historyItem.approver === approverEmail
-  ) || 
-  // Also check if application is in a final state
-  ['rejected', 'fis_entry_pending', 'completed'].includes(application.status);
+  // Check if this token has already been used or if application is in a final state
+  const hasAlreadyReviewed = tokenValidation?.used || 
+    // Also check if application is in a final state
+    ['rejected', 'fis_entry_pending', 'completed'].includes(application?.status || '');
 
-  if (hasAlreadyReviewed) {
+  if (tokenValidation && (!tokenValidation.valid || hasAlreadyReviewed)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
           <CheckCircle className="h-16 w-16 text-blue-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Already Reviewed</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {tokenValidation.used ? 'Already Reviewed' : 'Invalid Token'}
+          </h1>
           <p className="text-gray-600 mb-6">
-            This application has already been reviewed for approval.
+            {tokenValidation.message || 'This approval link has already been used or is no longer valid.'}
           </p>
           <div className="bg-white border border-gray-200 rounded-lg p-4 text-left">
-            <p className="text-sm text-gray-600">Application: {application.id}</p>
-            <p className="text-sm text-gray-600">Faculty: {application.facultyMember.name}</p>
-            <p className="text-sm text-gray-600">Current Status: {application.status.replace('_', ' ').toUpperCase()}</p>
+            <p className="text-sm text-gray-600">Application: {application?.id}</p>
+            <p className="text-sm text-gray-600">Faculty: {application?.facultyMember.name}</p>
+            <p className="text-sm text-gray-600">Current Status: {application?.status.replace('_', ' ').toUpperCase()}</p>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ const { body, validationResult, query } = require('express-validator');
 
 const Application = require('../models/Application');
 const FacultyMember = require('../models/FacultyMember');
+const ApprovalTokenService = require('../services/ApprovalTokenService');
 const EmailService = require('../services/EmailService');
 const NotificationService = require('../services/NotificationService');
 
@@ -648,6 +649,222 @@ router.get('/:id/cv', async (req, res) => {
     res.status(500).json({ error: 'Failed to serve CV file' });
   }
 });
+
+// POST /api/applications/:id/advance-to-associate-dean - Move application from CCC Review to CCC Associate Dean Review
+router.post('/:id/advance-to-associate-dean', [
+  body('notes').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: errors.array() 
+      });
+    }
+
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Ensure application is in correct status
+    if (application.status !== 'ccc_review') {
+      return res.status(400).json({ 
+        error: 'Application must be in CCC Review status to advance to CCC Associate Dean Review',
+        currentStatus: application.status
+      });
+    }
+
+    const notes = req.body.notes || 'Advanced to CCC Associate Dean Review by CCC Staff';
+    
+    // Update application status
+    await application.updateStatus('ccc_associate_dean_review', 'CCC Staff', notes);
+
+    // Send notification to CCC Associate Dean
+    try {
+      const notificationService = new NotificationService();
+      await notificationService.sendStatusChangeNotification(application, 'ccc_associate_dean_review');
+    } catch (error) {
+      console.error('Failed to send CCC Associate Dean notification:', error.message);
+      // Don't fail the status update if notification fails
+    }
+
+    res.json({
+      success: true,
+      message: 'Application advanced to CCC Associate Dean Review successfully',
+      application: application.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Error advancing application to CCC Associate Dean Review:', error);
+    res.status(500).json({ error: 'Failed to advance application' });
+  }
+});
+
+// POST /api/applications/validate-token - Validate approval token
+router.post('/validate-token', [
+  body('token').notEmpty().withMessage('Token is required'),
+  body('applicationId').notEmpty().withMessage('Application ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        valid: false,
+        used: false,
+        message: 'Invalid request parameters',
+        details: errors.array() 
+      });
+    }
+
+    const { token, applicationId } = req.body;
+
+    // Validate the token
+    const tokenData = await ApprovalTokenService.validateToken(token);
+    
+    // Check if token is for the correct application
+    if (tokenData.application_id !== applicationId) {
+      return res.json({
+        valid: false,
+        used: false,
+        message: 'Token is not valid for this application'
+      });
+    }
+
+    // Check if already used
+    if (tokenData.used) {
+      return res.json({
+        valid: true,
+        used: true,
+        message: 'This approval link has already been used'
+      });
+    }
+
+    // Token is valid and unused
+    res.json({
+      valid: true,
+      used: false,
+      message: 'Token is valid',
+      approverRole: tokenData.approver_role,
+      approverName: tokenData.approver_name
+    });
+
+  } catch (error) {
+    console.error('Token validation error:', error);
+    res.json({
+      valid: false,
+      used: false,
+      message: error.message || 'Invalid or expired token'
+    });
+  }
+});
+
+// PATCH /api/applications/:id/approve - Process approval with token
+router.patch('/:id/approve', [
+  body('approverEmail').isEmail().withMessage('Valid approver email is required'),
+  body('token').notEmpty().withMessage('Approval token is required'),
+  body('action').isIn(['approve', 'deny']).withMessage('Action must be approve or deny'),
+  body('signature').notEmpty().withMessage('Digital signature is required'),
+  body('notes').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: errors.array() 
+      });
+    }
+
+    const { approverEmail, token, action, signature, notes } = req.body;
+    const applicationId = req.params.id;
+
+    // Validate the token
+    const tokenData = await ApprovalTokenService.validateToken(token);
+    
+    // Verify token matches the request
+    if (tokenData.application_id !== applicationId || tokenData.approver_email !== approverEmail) {
+      return res.status(403).json({ error: 'Token validation failed' });
+    }
+
+    // Get the application
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Mark token as used
+    await ApprovalTokenService.markTokenAsUsed(token);
+
+    let nextStatus = null;
+
+    // Process the approval based on action
+    if (action === 'approve') {
+      // Update application status and add to status history
+      await application.addStatusHistory(
+        application.status, 
+        `${tokenData.approver_name} (${tokenData.approver_role})`,
+        notes,
+        token
+      );
+      
+      // Move to next status based on current workflow
+      nextStatus = getNextApprovalStatus(application, tokenData.approver_role);
+      if (nextStatus) {
+        await application.updateStatus(nextStatus);
+      }
+
+      // Send notifications for next step if approved and nextStatus exists
+      if (nextStatus) {
+        const notificationService = new NotificationService();
+        await notificationService.sendStatusChangeNotification(application, nextStatus);
+      }
+    } else {
+      // Deny application
+      await application.updateStatus('rejected');
+      await application.addStatusHistory(
+        'rejected', 
+        `${tokenData.approver_name} (${tokenData.approver_role})`,
+        notes || 'Application denied',
+        token
+      );
+    }
+
+    res.json({
+      success: true,
+      message: `Application ${action}d successfully`,
+      application: application.toJSON()
+    });
+
+  } catch (error) {
+    console.error('Approval processing error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process approval',
+      message: error.message 
+    });
+  }
+});
+
+// Helper function to determine next approval status
+function getNextApprovalStatus(application, currentApproverRole) {
+  switch (currentApproverRole) {
+    case 'ccc_associate_dean':
+      return 'awaiting_primary_approval';
+    case 'department_chair':
+    case 'division_chair':
+      // Check if more approvers are needed
+      if (application.deanName) {
+        return 'awaiting_primary_approval'; // Still need dean
+      }
+      return 'fis_entry_pending';
+    case 'dean':
+    case 'senior_associate_dean':
+      return 'fis_entry_pending';
+    default:
+      return null;
+  }
+}
 
 // Helper function to determine content type based on file extension
 function getContentType(filePath) {

@@ -48,8 +48,10 @@ class NotificationService {
         // Get CCC Associate Dean email from database settings
         const cccAssociateDeanEmail = await this.getCCCAssociateDeanEmail();
         
-        await this.emailService.sendCCCAssociateDeanNotification(
+        await this.emailService.sendApprovalNotification(
           cccAssociateDeanEmail,
+          'ccc_associate_dean',
+          'CCC Associate Dean',
           applicantName,
           application.id,
           primaryAppointment
@@ -57,22 +59,77 @@ class NotificationService {
         console.log(`✅ CCC Associate Dean notification sent for ${application.id}`);
       }
       
-      // If status moved to awaiting approval, send new approval notifications
+      // If status moved to awaiting approval, send notifications only to those who haven't been notified
       if (newStatus === 'awaiting_primary_approval') {
-        console.log(`📧 Status changed to Primary Approval - sending approver notifications for ${application.id}`);
+        console.log(`📧 Status changed to Primary Approval - checking for new approver notifications for ${application.id}`);
         const primaryAppointment = `${application.facultyCollege}, ${application.facultyDepartment || 'No Department'}`;
-        const approverEmails = this.emailService.getApproverEmails(application);
         
-        if (approverEmails.length > 0) {
+        // Get existing approval tokens to see who has already been notified
+        const existingTokens = await this.getExistingApprovalTokens(application.id);
+        const notifiedEmails = existingTokens.map(token => token.approver_email.toLowerCase());
+        
+        let notificationsSent = 0;
+
+        // Send to department chair if exists and not already notified
+        if (application.departmentChairName && application.departmentChairEmail && 
+            !notifiedEmails.includes(application.departmentChairEmail.toLowerCase())) {
           await this.emailService.sendApprovalNotification(
-            approverEmails,
+            application.departmentChairEmail,
+            'department_chair',
+            application.departmentChairName,
             applicantName,
             application.id,
             primaryAppointment
           );
-          console.log(`✅ Approver notifications sent to ${approverEmails.length} recipients for ${application.id}`);
+          notificationsSent++;
+        }
+
+        // Send to division chair if exists and not already notified
+        if (application.divisionChairName && application.divisionChairEmail && 
+            !notifiedEmails.includes(application.divisionChairEmail.toLowerCase())) {
+          await this.emailService.sendApprovalNotification(
+            application.divisionChairEmail,
+            'division_chair',
+            application.divisionChairName,
+            applicantName,
+            application.id,
+            primaryAppointment
+          );
+          notificationsSent++;
+        }
+
+        // Send to dean if exists and not already notified
+        if (application.deanName && application.deanEmail && 
+            !notifiedEmails.includes(application.deanEmail.toLowerCase())) {
+          await this.emailService.sendApprovalNotification(
+            application.deanEmail,
+            'dean',
+            application.deanName,
+            applicantName,
+            application.id,
+            primaryAppointment
+          );
+          notificationsSent++;
+        }
+
+        // Send to senior associate dean if exists and not already notified
+        if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail && 
+            !notifiedEmails.includes(application.seniorAssociateDeanEmail.toLowerCase())) {
+          await this.emailService.sendApprovalNotification(
+            application.seniorAssociateDeanEmail,
+            'senior_associate_dean',
+            application.seniorAssociateDeanName,
+            applicantName,
+            application.id,
+            primaryAppointment
+          );
+          notificationsSent++;
+        }
+
+        if (notificationsSent > 0) {
+          console.log(`✅ Primary approval notifications sent to ${notificationsSent} NEW recipients for ${application.id}`);
         } else {
-          console.log(`⚠️ No approver emails found for application ${application.id}`);
+          console.log(`ℹ️ No new primary approver notifications needed for application ${application.id} - all have been notified already`);
         }
       }
       
@@ -141,6 +198,20 @@ class NotificationService {
     } catch (error) {
       console.error('❌ Failed to get CCC Associate Dean email from settings:', error.message);
       return 'associate.dean.ccc@vanderbilt.edu'; // fallback default
+    }
+  }
+
+  async getExistingApprovalTokens(applicationId) {
+    try {
+      const db = require('../config/database');
+      const tokens = await db.all(
+        'SELECT approver_email, approver_role, approver_name FROM approval_tokens WHERE application_id = ?',
+        [applicationId]
+      );
+      return tokens || [];
+    } catch (error) {
+      console.error('❌ Failed to get existing approval tokens:', error.message);
+      return [];
     }
   }
 }

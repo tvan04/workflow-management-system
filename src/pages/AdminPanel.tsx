@@ -510,6 +510,8 @@ const ApplicationDetailsModal: React.FC<{
       case 'submitted':
         return 'ccc_review';
       case 'ccc_review':
+        return 'ccc_associate_dean_review';
+      case 'ccc_associate_dean_review':
         return 'awaiting_primary_approval';
       case 'awaiting_primary_approval':
         return 'fis_entry_pending';
@@ -532,31 +534,60 @@ const ApplicationDetailsModal: React.FC<{
 
     setIsUpdatingStatus(true);
     try {
-      await applicationApi.updateStatus(
-        application.id,
-        nextStatus,
-        'Manually approved by CCC Admin',
-        'CCC Admin'
-      );
+      // Special case: Use the dedicated endpoint for advancing to CCC Associate Dean Review
+      if (application.status === 'ccc_review' && nextStatus === 'ccc_associate_dean_review') {
+        const response = await fetch(`http://localhost:3001/api/applications/${application.id}/advance-to-associate-dean`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            notes: 'Advanced to CCC Associate Dean Review by CCC Admin'
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        const updatedApplication = {
+          ...result.application,
+          submittedAt: new Date(result.application.submittedAt),
+          updatedAt: new Date(result.application.updatedAt),
+          statusHistory: result.application.statusHistory?.map((item: any) => ({
+            ...item,
+            timestamp: new Date(item.timestamp)
+          })) || []
+        };
+        onStatusUpdate(updatedApplication);
+      } else {
+        // Use regular status update for other transitions
+        await applicationApi.updateStatus(
+          application.id,
+          nextStatus,
+          'Manually approved by CCC Admin',
+          'CCC Admin'
+        );
+        
+        // Fetch the updated application with fresh status history
+        const response = await applicationApi.getById(application.id);
+        const updatedApplication = {
+          ...response.data,
+          submittedAt: new Date(response.data.submittedAt),
+          updatedAt: new Date(response.data.updatedAt),
+          statusHistory: response.data.statusHistory?.map((item: any) => ({
+            ...item,
+            timestamp: new Date(item.timestamp)
+          })) || []
+        };
+        onStatusUpdate(updatedApplication);
+      }
       
-      // Fetch the updated application with fresh status history
-      const response = await applicationApi.getById(application.id);
-      const updatedApplication = {
-        ...response.data,
-        submittedAt: new Date(response.data.submittedAt),
-        updatedAt: new Date(response.data.updatedAt),
-        statusHistory: response.data.statusHistory?.map((item: any) => ({
-          ...item,
-          timestamp: new Date(item.timestamp)
-        })) || []
-      };
-      
-      onStatusUpdate(updatedApplication);
       setShowConfirmApproval(false);
       alert('Application status updated successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update application status:', error);
-      alert('Failed to update application status. Please try again.');
+      alert(`Failed to update application status: ${error.message}`);
     } finally {
       setIsUpdatingStatus(false);
     }
