@@ -810,7 +810,7 @@ router.patch('/:id/approve', [
       );
       
       // Move to next status based on current workflow
-      nextStatus = getNextApprovalStatus(application, tokenData.approver_role);
+      nextStatus = await getNextApprovalStatus(application, tokenData.approver_role);
       if (nextStatus) {
         await application.updateStatus(nextStatus);
       }
@@ -818,7 +818,7 @@ router.patch('/:id/approve', [
       // Send notifications for next step if approved and nextStatus exists
       if (nextStatus) {
         const notificationService = new NotificationService();
-        await notificationService.sendStatusChangeNotification(application, nextStatus);
+        await notificationService.sendStatusChangeNotification(application, nextStatus, tokenData.approver_role);
       }
     } else {
       // Deny application
@@ -846,21 +846,96 @@ router.patch('/:id/approve', [
   }
 });
 
+// Helper function to get approval hierarchy for an application
+function getApprovalHierarchy(application) {
+  const hierarchy = [];
+  
+  // Department Chair comes first if exists
+  if (application.departmentChairName && application.departmentChairEmail) {
+    hierarchy.push({
+      role: 'department_chair',
+      name: application.departmentChairName,
+      email: application.departmentChairEmail
+    });
+  }
+  
+  // Division Chair comes first if exists (alternative to department chair)
+  if (application.divisionChairName && application.divisionChairEmail) {
+    hierarchy.push({
+      role: 'division_chair',
+      name: application.divisionChairName,
+      email: application.divisionChairEmail
+    });
+  }
+  
+  // Senior Associate Dean comes after chairs but before dean
+  if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail) {
+    hierarchy.push({
+      role: 'senior_associate_dean',
+      name: application.seniorAssociateDeanName,
+      email: application.seniorAssociateDeanEmail
+    });
+  }
+  
+  // Dean comes last if exists
+  if (application.deanName && application.deanEmail) {
+    hierarchy.push({
+      role: 'dean',
+      name: application.deanName,
+      email: application.deanEmail
+    });
+  }
+  
+  return hierarchy;
+}
+
+// Helper function to get completed approvals for an application
+async function getCompletedApprovals(applicationId) {
+  try {
+    const db = require('../config/database');
+    const approvals = await db.all(
+      'SELECT approver_role, approver_name, used_at FROM approval_tokens WHERE application_id = ? AND used = 1',
+      [applicationId]
+    );
+    return approvals || [];
+  } catch (error) {
+    console.error('❌ Failed to get completed approvals:', error.message);
+    return [];
+  }
+}
+
+// Helper function to determine next approver in sequence
+async function getNextApproverInSequence(application) {
+  const hierarchy = getApprovalHierarchy(application);
+  const completedApprovals = await getCompletedApprovals(application.id);
+  const completedRoles = completedApprovals.map(approval => approval.approver_role);
+  
+  // Find the first approver in hierarchy who hasn't completed their approval
+  for (const approver of hierarchy) {
+    if (!completedRoles.includes(approver.role)) {
+      return approver;
+    }
+  }
+  
+  return null; // All approvers have completed their approvals
+}
+
 // Helper function to determine next approval status
-function getNextApprovalStatus(application, currentApproverRole) {
+async function getNextApprovalStatus(application, currentApproverRole) {
   switch (currentApproverRole) {
     case 'ccc_associate_dean':
-      return 'awaiting_primary_approval';
+      // After CCC Associate Dean, move to primary approval with first approver
+      const nextApprover = await getNextApproverInSequence(application);
+      return nextApprover ? 'awaiting_primary_approval' : 'fis_entry_pending';
+      
     case 'department_chair':
     case 'division_chair':
-      // Check if more approvers are needed
-      if (application.deanName) {
-        return 'awaiting_primary_approval'; // Still need dean
-      }
-      return 'fis_entry_pending';
-    case 'dean':
     case 'senior_associate_dean':
-      return 'fis_entry_pending';
+    case 'dean':
+      // Check if there are more approvers in the sequence
+      const remainingApprover = await getNextApproverInSequence(application);
+      return remainingApprover ? 'awaiting_primary_approval' : 'fis_entry_pending';
+      
     default:
       return null;
   }

@@ -32,7 +32,7 @@ class NotificationService {
     }
   }
 
-  async sendStatusChangeNotification(application, newStatus) {
+  async sendStatusChangeNotification(application, newStatus, previousApproverRole = null) {
     try {
       const applicantName = application.facultyName;
       
@@ -59,77 +59,29 @@ class NotificationService {
         console.log(`✅ CCC Associate Dean notification sent for ${application.id}`);
       }
       
-      // If status moved to awaiting approval, send notifications only to those who haven't been notified
+      // If status moved to awaiting approval, send notification to next approver in sequence
       if (newStatus === 'awaiting_primary_approval') {
-        console.log(`📧 Status changed to Primary Approval - checking for new approver notifications for ${application.id}`);
+        console.log(`📧 Status changed to Primary Approval - finding next approver for ${application.id}`);
         const primaryAppointment = `${application.facultyCollege}, ${application.facultyDepartment || 'No Department'}`;
         
-        // Get existing approval tokens to see who has already been notified
-        const existingTokens = await this.getExistingApprovalTokens(application.id);
-        const notifiedEmails = existingTokens.map(token => token.approver_email.toLowerCase());
+        // Get the next approver in the hierarchy sequence
+        const nextApprover = await this.getNextApproverInSequence(application);
         
-        let notificationsSent = 0;
-
-        // Send to department chair if exists and not already notified
-        if (application.departmentChairName && application.departmentChairEmail && 
-            !notifiedEmails.includes(application.departmentChairEmail.toLowerCase())) {
+        if (nextApprover) {
+          console.log(`📧 Sending notification to next approver: ${nextApprover.name} (${nextApprover.role}) for ${application.id}`);
+          
           await this.emailService.sendApprovalNotification(
-            application.departmentChairEmail,
-            'department_chair',
-            application.departmentChairName,
+            nextApprover.email,
+            nextApprover.role,
+            nextApprover.name,
             applicantName,
             application.id,
             primaryAppointment
           );
-          notificationsSent++;
-        }
-
-        // Send to division chair if exists and not already notified
-        if (application.divisionChairName && application.divisionChairEmail && 
-            !notifiedEmails.includes(application.divisionChairEmail.toLowerCase())) {
-          await this.emailService.sendApprovalNotification(
-            application.divisionChairEmail,
-            'division_chair',
-            application.divisionChairName,
-            applicantName,
-            application.id,
-            primaryAppointment
-          );
-          notificationsSent++;
-        }
-
-        // Send to dean if exists and not already notified
-        if (application.deanName && application.deanEmail && 
-            !notifiedEmails.includes(application.deanEmail.toLowerCase())) {
-          await this.emailService.sendApprovalNotification(
-            application.deanEmail,
-            'dean',
-            application.deanName,
-            applicantName,
-            application.id,
-            primaryAppointment
-          );
-          notificationsSent++;
-        }
-
-        // Send to senior associate dean if exists and not already notified
-        if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail && 
-            !notifiedEmails.includes(application.seniorAssociateDeanEmail.toLowerCase())) {
-          await this.emailService.sendApprovalNotification(
-            application.seniorAssociateDeanEmail,
-            'senior_associate_dean',
-            application.seniorAssociateDeanName,
-            applicantName,
-            application.id,
-            primaryAppointment
-          );
-          notificationsSent++;
-        }
-
-        if (notificationsSent > 0) {
-          console.log(`✅ Primary approval notifications sent to ${notificationsSent} NEW recipients for ${application.id}`);
+          
+          console.log(`✅ Sequential approval notification sent to ${nextApprover.name} for ${application.id}`);
         } else {
-          console.log(`ℹ️ No new primary approver notifications needed for application ${application.id} - all have been notified already`);
+          console.log(`ℹ️ No next approver found in sequence for application ${application.id} - all approvals may be complete`);
         }
       }
       
@@ -213,6 +165,80 @@ class NotificationService {
       console.error('❌ Failed to get existing approval tokens:', error.message);
       return [];
     }
+  }
+
+  // Helper function to get approval hierarchy for an application
+  getApprovalHierarchy(application) {
+    const hierarchy = [];
+    
+    // Department Chair comes first if exists
+    if (application.departmentChairName && application.departmentChairEmail) {
+      hierarchy.push({
+        role: 'department_chair',
+        name: application.departmentChairName,
+        email: application.departmentChairEmail
+      });
+    }
+    
+    // Division Chair comes first if exists (alternative to department chair)
+    if (application.divisionChairName && application.divisionChairEmail) {
+      hierarchy.push({
+        role: 'division_chair',
+        name: application.divisionChairName,
+        email: application.divisionChairEmail
+      });
+    }
+    
+    // Senior Associate Dean comes after chairs but before dean
+    if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail) {
+      hierarchy.push({
+        role: 'senior_associate_dean',
+        name: application.seniorAssociateDeanName,
+        email: application.seniorAssociateDeanEmail
+      });
+    }
+    
+    // Dean comes last if exists
+    if (application.deanName && application.deanEmail) {
+      hierarchy.push({
+        role: 'dean',
+        name: application.deanName,
+        email: application.deanEmail
+      });
+    }
+    
+    return hierarchy;
+  }
+
+  // Helper function to get completed approvals for an application
+  async getCompletedApprovals(applicationId) {
+    try {
+      const db = require('../config/database');
+      const approvals = await db.all(
+        'SELECT approver_role, approver_name, used_at FROM approval_tokens WHERE application_id = ? AND used = 1',
+        [applicationId]
+      );
+      return approvals || [];
+    } catch (error) {
+      console.error('❌ Failed to get completed approvals:', error.message);
+      return [];
+    }
+  }
+
+  // Helper function to determine next approver in sequence
+  async getNextApproverInSequence(application) {
+    const hierarchy = this.getApprovalHierarchy(application);
+    const completedApprovals = await this.getCompletedApprovals(application.id);
+    const completedRoles = completedApprovals.map(approval => approval.approver_role);
+    
+    // Find the first approver in hierarchy who hasn't completed their approval
+    for (const approver of hierarchy) {
+      if (!completedRoles.includes(approver.role)) {
+        return approver;
+      }
+    }
+    
+    return null; // All approvers have completed their approvals
   }
 }
 
