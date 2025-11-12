@@ -124,10 +124,22 @@ const CVPreview: React.FC<CVPreviewProps> = ({ applicationId, fileName, classNam
         {fileType === 'pdf' && previewUrl ? (
           <div className="w-full" style={{ height: '600px' }}>
             <iframe
-              src={previewUrl}
+              src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=1`}
               className="w-full h-full border-0"
               title="CV Preview"
-              onError={() => setError('Failed to load PDF preview')}
+              style={{ minHeight: '600px' }}
+              onLoad={(e) => {
+                // Check if iframe loaded successfully
+                try {
+                  const iframe = e.target as HTMLIFrameElement;
+                  if (!iframe.contentDocument && !iframe.contentWindow) {
+                    setError('PDF preview blocked by browser. Please use download or open in new tab.');
+                  }
+                } catch (err) {
+                  console.warn('Could not access iframe content:', err);
+                }
+              }}
+              onError={() => setError('Failed to load PDF preview. Please use download or open in new tab.')}
             />
           </div>
         ) : fileType === 'docx' ? (

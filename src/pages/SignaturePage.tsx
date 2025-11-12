@@ -276,20 +276,6 @@ const SignaturePage: React.FC = () => {
                   <p className="text-sm text-gray-900 font-mono">{application.id}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Appointment Duration</label>
-                  <p className="text-sm text-gray-900">
-                    {application.duration === '1year' ? '1 Year' : 
-                     application.duration === '2year' ? '2 Years' : 
-                     application.duration === '3year' ? '3 Years' : application.duration}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Effective Date</label>
-                  <p className="text-sm text-gray-900">
-                    {application.effectiveDate ? new Date(application.effectiveDate).toLocaleDateString() : 'Not specified'}
-                  </p>
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700">Submitted</label>
                   <p className="text-sm text-gray-900">
                     {application.submittedAt instanceof Date 
@@ -300,11 +286,30 @@ const SignaturePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Rationale */}
+            {/* Application Questions */}
             <div>
-              <h3 className="text-md font-medium text-gray-900 mb-3">Rationale for Secondary Appointment</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.rationale}</p>
+              <h3 className="text-md font-medium text-gray-900 mb-3">Application Questions</h3>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                    1. How will your expertise and research contributions enhance the College of Connected Computing's mission and goals?
+                  </h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.contributionsQuestion}</p>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                    2. How does your work align with the College's interdisciplinary approach to computing?
+                  </h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.alignmentQuestion}</p>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                    3. What collaborative opportunities do you foresee that would enhance both your research and the College's impact?
+                  </h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.enhancementQuestion}</p>
+                </div>
               </div>
             </div>
 

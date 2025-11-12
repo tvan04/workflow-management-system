@@ -627,6 +627,9 @@ router.get('/:id/cv', async (req, res) => {
     if (inline) {
       // For inline viewing (preview)
       res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      // Additional headers for iframe embedding
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      res.setHeader('Content-Security-Policy', 'frame-ancestors \'self\'');
     } else {
       // For download
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -635,6 +638,7 @@ router.get('/:id/cv', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    res.setHeader('Accept-Ranges', 'bytes');
 
     // Send the BLOB data directly
     res.send(application.cvFileData);
