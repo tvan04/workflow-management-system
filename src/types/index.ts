@@ -65,6 +65,7 @@ export interface Application {
   submittedAt: Date;
   updatedAt: Date;
   cvFile?: File | string;
+  cvFileName?: string; // CV file name for display and preview
   rationale?: string; // Legacy field for backward compatibility
   contributionsQuestion?: string; // New structured question
   alignmentQuestion?: string; // New structured question  

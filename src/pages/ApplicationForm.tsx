@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { 
   Upload, 
   CheckCircle, 
@@ -78,6 +78,9 @@ const ApplicationForm: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const submissionInProgress = useRef(false);
+  const lastSubmissionData = useRef<string | null>(null);
   const [approvalChainLoaded, setApprovalChainLoaded] = useState(false);
 
 
@@ -307,11 +310,38 @@ const ApplicationForm: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
+    
+    // Create a unique signature for this submission
+    const submissionSignature = JSON.stringify({
+      name: formData.name,
+      email: formData.email,
+      timestamp: Date.now()
+    });
+    
+    // Prevent duplicate submissions using ref (survives re-renders)
+    if (submissionInProgress.current) {
+      console.log('Submission already in progress, ignoring duplicate');
+      return;
+    }
+    
+    // Prevent identical submissions
+    if (lastSubmissionData.current === submissionSignature) {
+      console.log('Identical submission detected, ignoring duplicate');
+      return;
+    }
+    
+    // Prevent resubmission after success
+    if (submitSuccess && submissionId) {
+      console.log('Application already submitted successfully, ignoring resubmission');
+      return;
+    }
 
+    submissionInProgress.current = true;
+    lastSubmissionData.current = submissionSignature;
     setIsSubmitting(true);
     
     try {
@@ -349,8 +379,10 @@ const ApplicationForm: React.FC = () => {
       }
       
       // Submit to API
-      await applicationApi.submit(formDataToSubmit);
+      const response = await applicationApi.submit(formDataToSubmit);
       
+      // Track successful submission to prevent duplicates
+      setSubmissionId(response.data.applicationId);
       setSubmitSuccess(true);
       setFormData({
         name: '',
@@ -381,9 +413,10 @@ const ApplicationForm: React.FC = () => {
       // You could add error state here to show user the error
       alert('Failed to submit application. Please try again.');
     } finally {
+      submissionInProgress.current = false;
       setIsSubmitting(false);
     }
-  };
+  }, [formData, validateForm, submitSuccess, submissionId]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

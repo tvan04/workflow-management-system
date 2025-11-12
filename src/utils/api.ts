@@ -104,6 +104,45 @@ export const applicationApi = {
       }),
     });
   },
+
+  // Download CV file
+  downloadCV: async (applicationId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/applications/${applicationId}/cv`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('CV file not found');
+      }
+      throw new Error(`Failed to download CV: ${response.status}`);
+    }
+
+    // Get filename from Content-Disposition header
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = `CV-${applicationId}.pdf`; // default
+    
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+
+    // Create blob and download
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 // College and organizational data API

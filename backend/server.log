@@ -9,6 +9,17 @@ Server running on port 3001
 Environment: development
 Database: ./data/database.sqlite
 API Documentation: http://localhost:3001/health
-::1 - - [03/Nov/2025:21:08:45 +0000] "GET /api/applications HTTP/1.1" 200 7674 "-" "axios/1.12.2"
-::1 - - [03/Nov/2025:21:09:56 +0000] "GET /api/applications HTTP/1.1" 200 7674 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
-::1 - - [03/Nov/2025:21:09:56 +0000] "GET /api/applications HTTP/1.1" 200 7674 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+=== APPLICATION SUBMISSION START ===
+Request body name: Debug Test Log
+Request timestamp: 2025-11-12T00:41:43.736Z
+About to save application with ID: APP-2025-9D570F75
+Application saved successfully with ID: APP-2025-9D570F75
+Warning: CCC_FACULTY_EMAIL not found in environment variables
+Sending confirmation email to applicant: tristan.v.van@vanderbilt.edu
+✅ Confirmation email sent successfully to applicant
+❌ Failed to send application submitted notifications: CCC Faculty Email not configured
+=== APPLICATION SUBMISSION END ===
+::1 - - [12/Nov/2025:00:41:44 +0000] "POST /api/applications HTTP/1.1" 201 93 "-" "curl/8.7.1"
+::1 - - [12/Nov/2025:00:41:49 +0000] "GET /api/applications HTTP/1.1" 200 22956 "-" "curl/8.7.1"
+::1 - - [12/Nov/2025:00:43:16 +0000] "GET /api/applications HTTP/1.1" 200 22956 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+::1 - - [12/Nov/2025:00:43:16 +0000] "GET /api/applications HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"

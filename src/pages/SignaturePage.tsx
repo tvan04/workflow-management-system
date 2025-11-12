@@ -5,13 +5,12 @@ import {
   XCircle, 
   FileText, 
   User, 
-  Building2,
-  Calendar,
   AlertTriangle,
   Loader2
 } from 'lucide-react';
 import { Application } from '../types';
 import { applicationApi } from '../utils/api';
+import CVPreview from '../components/CVPreview';
 
 interface ApprovalAction {
   applicationId: string;
@@ -37,6 +36,7 @@ const SignaturePage: React.FC = () => {
   const [signature, setSignature] = useState('');
   const [notes, setNotes] = useState('');
   const [signatureError, setSignatureError] = useState('');
+
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -280,6 +280,16 @@ const SignaturePage: React.FC = () => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.rationale}</p>
               </div>
+            </div>
+
+            {/* CV Preview */}
+            <div>
+              <h3 className="text-md font-medium text-gray-900 mb-3">Curriculum Vitae</h3>
+              <CVPreview 
+                applicationId={application.id} 
+                fileName={application.cvFileName}
+                className="w-full"
+              />
             </div>
           </div>
         </div>

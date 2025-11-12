@@ -11,20 +11,8 @@ const NotificationService = require('../services/NotificationService');
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
+// Configure multer for file uploads - using memory storage for database BLOB storage
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -206,13 +194,13 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/applications - Submit new application
 router.post('/', upload.single('cvFile'), validateApplication, async (req, res) => {
+  console.log('=== APPLICATION SUBMISSION START ===');
+  console.log('Request body name:', req.body.name);
+  console.log('Request timestamp:', new Date().toISOString());
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // Clean up uploaded file if validation fails
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
       return res.status(400).json({ 
         error: 'Validation failed', 
         details: errors.array() 
@@ -244,8 +232,10 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
       contributionsQuestion: req.body.contributionsQuestion,
       alignmentQuestion: req.body.alignmentQuestion,
       enhancementQuestion: req.body.enhancementQuestion,
-      cvFilePath: req.file.path,
       cvFileName: req.file.originalname,
+      cvFileData: req.file.buffer, // Store file data as BLOB
+      cvFileSize: req.file.size,
+      cvMimeType: req.file.mimetype,
       
       // Approval chain
       departmentChairName: req.body.departmentChairName,
@@ -260,7 +250,9 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
     };
 
     const application = new Application(applicationData);
+    console.log('About to save application with ID:', application.id);
     await application.save();
+    console.log('Application saved successfully with ID:', application.id);
 
     // Add faculty member data for response
     application.facultyMember = faculty.toJSON();
@@ -274,18 +266,13 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
       // Don't fail the request if notification fails
     }
 
+    console.log('=== APPLICATION SUBMISSION END ===');
     res.status(201).json({
       data: { applicationId: application.id },
       message: 'Application submitted successfully'
     });
   } catch (error) {
     console.error('Error creating application:', error);
-    
-    // Clean up uploaded file on error
-    if (req.file) {
-      fs.unlink(req.file.path, () => {});
-    }
-    
     res.status(500).json({ error: 'Failed to submit application' });
   }
 });
@@ -547,5 +534,75 @@ router.post('/:id/approve', [
     res.status(500).json({ error: 'Failed to process approval' });
   }
 });
+
+// GET /api/applications/:id/cv - Download or view CV file from database BLOB
+router.get('/:id/cv', async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    if (!application.cvFileData) {
+      return res.status(404).json({ error: 'CV file not found for this application' });
+    }
+
+    const fileName = application.cvFileName || `CV-${application.id}.pdf`;
+    const inline = req.query.inline === 'true'; // Check if we want inline viewing
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', application.cvMimeType || getContentTypeFromFileName(fileName));
+    res.setHeader('Content-Length', application.cvFileSize || application.cvFileData.length);
+    
+    if (inline) {
+      // For inline viewing (preview)
+      res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+    } else {
+      // For download
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    }
+    
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Send the BLOB data directly
+    res.send(application.cvFileData);
+
+  } catch (error) {
+    console.error('Error serving CV:', error);
+    res.status(500).json({ error: 'Failed to serve CV file' });
+  }
+});
+
+// Helper function to determine content type based on file extension
+function getContentType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case '.pdf':
+      return 'application/pdf';
+    case '.doc':
+      return 'application/msword';
+    case '.docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+// Helper function to determine content type based on file name (for BLOB storage)
+function getContentTypeFromFileName(fileName) {
+  const ext = path.extname(fileName).toLowerCase();
+  switch (ext) {
+    case '.pdf':
+      return 'application/pdf';
+    case '.doc':
+      return 'application/msword';
+    case '.docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    default:
+      return 'application/octet-stream';
+  }
+}
 
 module.exports = router;

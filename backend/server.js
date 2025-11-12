@@ -42,14 +42,7 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined'));
 }
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = process.env.UPLOAD_DIR || './uploads';
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, uploadsDir)));
+// Note: Files are now stored as BLOBs in database, no file system storage needed
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -32,6 +32,9 @@ class Database {
   }
 
   async createTables() {
+    // First check if we need to add the cv_file_data column for BLOB storage
+    await this.addMissingColumns();
+    
     const queries = [
       // Colleges table
       `CREATE TABLE IF NOT EXISTS colleges (
@@ -170,6 +173,34 @@ class Database {
     }
 
     console.log('Database tables created successfully');
+  }
+
+  async addMissingColumns() {
+    try {
+      // Check if cv_file_data column exists in applications table
+      const columns = await this.all("PRAGMA table_info(applications)");
+      const hasCvFileDataColumn = columns.some(col => col.name === 'cv_file_data');
+      const hasCvFileSizeColumn = columns.some(col => col.name === 'cv_file_size');
+      const hasCvMimeTypeColumn = columns.some(col => col.name === 'cv_mime_type');
+      
+      if (!hasCvFileDataColumn) {
+        console.log('Adding cv_file_data BLOB column to applications table...');
+        await this.run('ALTER TABLE applications ADD COLUMN cv_file_data BLOB');
+      }
+      
+      if (!hasCvFileSizeColumn) {
+        console.log('Adding cv_file_size column to applications table...');
+        await this.run('ALTER TABLE applications ADD COLUMN cv_file_size INTEGER');
+      }
+      
+      if (!hasCvMimeTypeColumn) {
+        console.log('Adding cv_mime_type column to applications table...');
+        await this.run('ALTER TABLE applications ADD COLUMN cv_mime_type TEXT');
+      }
+    } catch (error) {
+      console.error('Error adding missing columns:', error);
+      // Don't throw - let the application continue in case the table doesn't exist yet
+    }
   }
 
   run(query, params = []) {

@@ -942,17 +942,13 @@ const CurrentApplicationsTab: React.FC = () => {
     }
   };
 
-  const handleDownloadCV = (application: Application) => {
-    // Mock CV download functionality
-    const blob = new Blob([`CV for ${application.facultyMember.name}`], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${application.facultyMember.name}_CV.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleDownloadCV = async (application: Application) => {
+    try {
+      await applicationApi.downloadCV(application.id);
+    } catch (error) {
+      console.error('Failed to download CV:', error);
+      alert('Failed to download CV file. Please try again.');
+    }
   };
 
   const handleSaveApplication = async (updatedApplication: Application) => {

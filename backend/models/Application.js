@@ -16,6 +16,9 @@ class Application {
     this.enhancementQuestion = data.enhancementQuestion || data.enhancement_question;
     this.cvFilePath = data.cvFilePath || data.cv_file_path;
     this.cvFileName = data.cvFileName || data.cv_file_name;
+    this.cvFileData = data.cvFileData || data.cv_file_data;
+    this.cvFileSize = data.cvFileSize || data.cv_file_size;
+    this.cvMimeType = data.cvMimeType || data.cv_mime_type;
     
     // Approval chain - support both camelCase and snake_case
     this.departmentChairName = data.departmentChairName || data.department_chair_name;
@@ -42,17 +45,20 @@ class Application {
     const query = `
       INSERT INTO applications (
         id, faculty_member_id, status, appointment_type, effective_date, duration,
-        rationale, contributions_question, alignment_question, enhancement_question, cv_file_path, cv_file_name, department_chair_name, department_chair_email,
+        rationale, contributions_question, alignment_question, enhancement_question, 
+        cv_file_path, cv_file_name, cv_file_data, cv_file_size, cv_mime_type,
+        department_chair_name, department_chair_email,
         division_chair_name, division_chair_email, dean_name, dean_email,
         senior_associate_dean_name, senior_associate_dean_email, has_departments,
         submitted_at, updated_at, current_approver, fis_entered, fis_entry_date,
         processing_time_weeks, primary_appointment_end_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
       this.id, this.facultyMemberId, this.status, this.appointmentType, this.effectiveDate,
-      this.duration, this.rationale, this.contributionsQuestion, this.alignmentQuestion, this.enhancementQuestion, this.cvFilePath, this.cvFileName,
+      this.duration, this.rationale, this.contributionsQuestion, this.alignmentQuestion, this.enhancementQuestion, 
+      this.cvFilePath, this.cvFileName, this.cvFileData, this.cvFileSize, this.cvMimeType,
       this.departmentChairName, this.departmentChairEmail, this.divisionChairName,
       this.divisionChairEmail, this.deanName, this.deanEmail, this.seniorAssociateDeanName,
       this.seniorAssociateDeanEmail, this.hasDepartments, this.submittedAt, this.updatedAt,
@@ -208,6 +214,7 @@ class Application {
       alignmentQuestion: this.alignmentQuestion,
       enhancementQuestion: this.enhancementQuestion,
       cvFile: this.cvFileName,
+      cvFileName: this.cvFileName,
       currentApprover: this.currentApprover,
       fisEntered: this.fisEntered,
       fisEntryDate: this.fisEntryDate,
