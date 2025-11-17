@@ -437,6 +437,8 @@ class EmailService {
         <p style="margin: 0; color: #155724;">This application has completed all required approvals and is now ready for FIS entry.</p>
       </div>
       
+      <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/edit/${applicationId}" style="background-color: #1D4ED8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">View and Edit Application</a></p>
+      
       <p><strong>Next Steps:</strong></p>
       <ol>
         <li>Review the complete application in the workflow management system</li>

@@ -136,6 +136,7 @@ const AdminEditApplication: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   useEffect(() => {
     const fetchApplication = async () => {
@@ -479,6 +480,46 @@ const AdminEditApplication: React.FC = () => {
     }
   };
 
+  const handleSaveAndComplete = () => {
+    setShowCompleteModal(true);
+  };
+
+  const confirmSaveAndComplete = async () => {
+    if (!formData || !application) return;
+
+    setSaving(true);
+    try {
+      // First save the data
+      await saveApplicationData();
+
+      // Then change status to completed
+      const response = await fetch(`http://localhost:3001/api/applications/${application.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'completed'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to complete application');
+      }
+
+      setShowCompleteModal(false);
+      alert('Application saved and completed successfully!');
+      navigate('/admin');
+    } catch (error) {
+      console.error('Error completing application:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Error completing application: ${errorMessage}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const statusOptions: { value: ApplicationStatus; label: string }[] = [
     { value: 'submitted', label: 'Submitted' },
     { value: 'ccc_review', label: 'CCC Review' },
@@ -559,6 +600,20 @@ const AdminEditApplication: React.FC = () => {
               >
                 <CheckCircle className="inline mr-1 h-4 w-4" />
                 {saving ? 'Saving...' : 'Save and Approve Review'}
+              </button>
+            )}
+            {application?.status === 'fis_entry_pending' && (
+              <button
+                onClick={handleSaveAndComplete}
+                disabled={saving}
+                className={`px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-white ${
+                  saving
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                <CheckCircle className="inline mr-1 h-4 w-4" />
+                {saving ? 'Saving...' : 'Save and Complete Application'}
               </button>
             )}
           </div>
@@ -792,6 +847,44 @@ const AdminEditApplication: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* FIS Entry Confirmation Modal */}
+      {showCompleteModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="mt-3 text-center">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Complete Application
+                </h3>
+                <div className="mt-2 px-7 py-3">
+                  <p className="text-sm text-gray-500">
+                    Has the FIS (Faculty Information System) entry been completed for this application?
+                  </p>
+                </div>
+                <div className="flex justify-center space-x-4 px-4 py-3">
+                  <button
+                    onClick={() => setShowCompleteModal(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmSaveAndComplete}
+                    disabled={saving}
+                    className="px-4 py-2 bg-green-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400"
+                  >
+                    {saving ? 'Completing...' : 'Yes, Complete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
