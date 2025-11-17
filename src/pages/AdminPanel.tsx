@@ -179,36 +179,37 @@ const formatStatusName = (status: string): string => {
 const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: string) => {
   if (!statusHistory || statusHistory.length === 0) return [];
   
-  const completedSteps = [];
+  // Filter out entries with no meaningful content (no notes and no approver)
+  const meaningfulEntries = statusHistory.filter(entry => 
+    entry.notes || entry.approver
+  );
   
-  // Process each status history entry to find completed steps
-  for (let i = 0; i < statusHistory.length; i++) {
-    const historyItem = statusHistory[i];
+  return meaningfulEntries.map((historyItem, index) => {
+    let displayStatus = historyItem.status;
     
-    // Map each recorded status to the step that was completed to reach it
-    let completedStep = '';
-    switch (historyItem.status) {
-      case 'awaiting_primary_approval':
-        completedStep = 'ccc_review'; // CCC Review was completed to reach Primary Approval
-        break;
-      case 'fis_entry_pending':
-        completedStep = 'awaiting_primary_approval'; // Primary Approval was completed to reach FIS Entry
-        break;
-      case 'completed':
-        completedStep = 'fis_entry_pending'; // FIS Entry was completed to reach Completed
-        break;
-      case 'ccc_review':
-      default:
-        continue; // Skip ccc_review transitions (submission) and unknown statuses
+    // Special case: first meaningful entry should show as "Submitted" 
+    // if it has submission-related notes
+    if (index === 0 && historyItem.notes && 
+        historyItem.notes.includes('submitted') && 
+        historyItem.status === 'ccc_review') {
+      displayStatus = 'submitted';
+    }
+    // Second entry: if it's advancing from CCC Review, show as "CCC Review"
+    else if (index === 1 && historyItem.notes && 
+             historyItem.notes.includes('CCC Associate Dean Review') && 
+             historyItem.status === 'ccc_associate_dean_review') {
+      displayStatus = 'ccc_review';
+    }
+    // Convert "awaiting" statuses to completed statuses for history display
+    else if (displayStatus === 'awaiting_primary_approval') {
+      displayStatus = 'primary_approval';
     }
     
-    completedSteps.push({
+    return {
       ...historyItem,
-      displayStatus: completedStep
-    });
-  }
-  
-  return completedSteps;
+      displayStatus: displayStatus
+    };
+  });
 };
 
 // Application details modal

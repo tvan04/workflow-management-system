@@ -459,7 +459,7 @@ const AdminEditApplication: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          notes: 'Advanced to CCC Associate Dean Review from admin edit'
+          notes: 'Approved after admin edits'
         })
       });
 
