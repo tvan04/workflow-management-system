@@ -79,6 +79,15 @@ export interface Application {
   duration?: string;
   effectiveDate?: string;
   appointmentType?: string;
+  // Individual approver fields (used by admin interface)
+  departmentChairName?: string;
+  departmentChairEmail?: string;
+  divisionChairName?: string;
+  divisionChairEmail?: string;
+  deanName?: string;
+  deanEmail?: string;
+  seniorAssociateDeanName?: string;
+  seniorAssociateDeanEmail?: string;
 }
 
 export interface StatusHistoryItem {

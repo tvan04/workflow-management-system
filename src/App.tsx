@@ -9,6 +9,7 @@ import ApplicationForm from './pages/ApplicationForm';
 import ApplicationStatus from './pages/ApplicationStatus';
 import UserDashboard from './pages/UserDashboard';
 import AdminPanel from './pages/AdminPanel';
+import AdminEditApplication from './pages/AdminEditApplication';
 import SignaturePage from './pages/SignaturePage';
 import RoleBasedRedirect from './components/RoleBasedRedirect';
 import './App.css';
@@ -39,6 +40,11 @@ function App() {
                   <Route path="/admin" element={
                     <ProtectedRoute requireAdmin>
                       <AdminPanel />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/edit/:applicationId" element={
+                    <ProtectedRoute requireAdmin>
+                      <AdminEditApplication />
                     </ProtectedRoute>
                   } />
                   

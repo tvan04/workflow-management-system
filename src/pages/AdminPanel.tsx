@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Settings, 
   Building2, 
@@ -14,9 +15,33 @@ import {
   Search,
   ArrowUpDown
 } from 'lucide-react';
-import { College, Application, ApplicationStatus, FacultyMember } from '../types';
+import { College, Application, ApplicationStatus } from '../types';
 import { applicationApi, settingsApi } from '../utils/api';
 import CVPreview from '../components/CVPreview';
+
+// Helper function to format date for display without timezone issues
+const formatDateForDisplay = (date: Date | string | undefined): string => {
+  if (!date) return 'Not set';
+  
+  if (typeof date === 'string') {
+    try {
+      // If it's a string, parse it as local date to avoid timezone issues
+      const dateStr = date.includes('T') ? date.split('T')[0] : date;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const localDate = new Date(year, month - 1, day);
+      return localDate.toLocaleDateString();
+    } catch (error) {
+      console.warn('Error parsing date string:', date, error);
+      return 'Invalid date';
+    }
+  }
+  
+  if (date instanceof Date) {
+    return date.toLocaleDateString();
+  }
+  
+  return 'Not set';
+};
 
 interface TabProps {
   activeTab: string;
@@ -138,315 +163,6 @@ const ApplicationProgress: React.FC<{ status: ApplicationStatus }> = ({ status }
   );
 };
 
-// Application edit modal for admin use
-const ApplicationEditModal: React.FC<{
-  application: Application;
-  onClose: () => void;
-  onSave: (updatedApplication: Application) => void;
-}> = ({ application, onClose, onSave }) => {
-  const [formData, setFormData] = useState<Application>({
-    ...application,
-    primaryAppointmentEndDate: application.primaryAppointmentEndDate ? new Date(application.primaryAppointmentEndDate) : undefined
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const handleInputChange = (field: keyof Application, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user makes changes
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const handleFacultyChange = (field: keyof FacultyMember, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      facultyMember: { ...prev.facultyMember, [field]: value }
-    }));
-  };
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.facultyMember.name.trim()) {
-      newErrors['facultyMember.name'] = 'Name is required';
-    }
-    if (!formData.facultyMember.email.trim()) {
-      newErrors['facultyMember.email'] = 'Email is required';
-    } else if (!validateEmail(formData.facultyMember.email)) {
-      newErrors['facultyMember.email'] = 'Invalid email format';
-    }
-    if (!formData.contributionsQuestion?.trim()) {
-      newErrors.contributionsQuestion = 'Contributions question is required';
-    }
-    if (!formData.alignmentQuestion?.trim()) {
-      newErrors.alignmentQuestion = 'Alignment question is required';
-    }
-    if (!formData.enhancementQuestion?.trim()) {
-      newErrors.enhancementQuestion = 'Enhancement question is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    const updatedApplication = {
-      ...formData,
-      updatedAt: new Date()
-    };
-
-    onSave(updatedApplication);
-  };
-
-  const statusOptions: { value: ApplicationStatus; label: string }[] = [
-    { value: 'submitted', label: 'Submitted' },
-    { value: 'ccc_review', label: 'CCC Review' },
-    { value: 'awaiting_primary_approval', label: 'Awaiting Primary Approval' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'fis_entry_pending', label: 'FIS Entry Pending' },
-    { value: 'completed', label: 'Completed' }
-  ];
-
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-10 mx-auto p-5 border max-w-4xl shadow-lg rounded-md bg-white">
-        <form onSubmit={handleSubmit}>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-medium text-gray-900">Edit Application</h3>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-
-          <div className="space-y-6">
-            {/* Faculty Information */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Faculty Information</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                  <input
-                    type="text"
-                    value={formData.facultyMember.name}
-                    onChange={(e) => handleFacultyChange('name', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                      errors['facultyMember.name'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['facultyMember.name'] && (
-                    <p className="mt-1 text-sm text-red-600">{errors['facultyMember.name']}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input
-                    type="email"
-                    value={formData.facultyMember.email}
-                    onChange={(e) => handleFacultyChange('email', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                      errors['facultyMember.email'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['facultyMember.email'] && (
-                    <p className="mt-1 text-sm text-red-600">{errors['facultyMember.email']}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={formData.facultyMember.title}
-                    onChange={(e) => handleFacultyChange('title', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">College</label>
-                  <input
-                    type="text"
-                    value={formData.facultyMember.college}
-                    onChange={(e) => handleFacultyChange('college', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                  <input
-                    type="text"
-                    value={formData.facultyMember.department || ''}
-                    onChange={(e) => handleFacultyChange('department', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
-                  <select
-                    value={formData.facultyMember.institution}
-                    onChange={(e) => handleFacultyChange('institution', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="vanderbilt">Vanderbilt University</option>
-                    <option value="vumc">Vanderbilt University Medical Center</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Application Status and Details */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Application Status</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Approver</label>
-                  <input
-                    type="text"
-                    value={formData.currentApprover || ''}
-                    onChange={(e) => handleInputChange('currentApprover', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                      errors.currentApprover ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., Dr. John Smith (Department Chair)"
-                  />
-                  {errors.currentApprover && (
-                    <p className="mt-1 text-sm text-red-600">{errors.currentApprover}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Admin-Only Fields */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Admin-Only Fields</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Appointment End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.primaryAppointmentEndDate ? (formData.primaryAppointmentEndDate instanceof Date ? formData.primaryAppointmentEndDate.toISOString().split('T')[0] : formData.primaryAppointmentEndDate) : ''}
-                    onChange={(e) => handleInputChange('primaryAppointmentEndDate', e.target.value ? new Date(e.target.value) : undefined)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    This date is only visible to administrators
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">FIS Entered</label>
-                  <select
-                    value={formData.fisEntered.toString()}
-                    onChange={(e) => handleInputChange('fisEntered', e.target.value === 'true')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="false">No</option>
-                    <option value="true">Yes</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Three Questions */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contributions Question *</label>
-                <p className="text-xs text-gray-500 mb-2">What specific contributions do you expect to make to the College of Connected Computing through this secondary appointment?</p>
-                <textarea
-                  value={formData.contributionsQuestion || ''}
-                  onChange={(e) => handleInputChange('contributionsQuestion', e.target.value)}
-                  rows={3}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                    errors.contributionsQuestion ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors.contributionsQuestion && (
-                  <p className="mt-1 text-sm text-red-600">{errors.contributionsQuestion}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Alignment Question *</label>
-                <p className="text-xs text-gray-500 mb-2">How does your research, teaching, or service align with the interdisciplinary mission of the College of Connected Computing?</p>
-                <textarea
-                  value={formData.alignmentQuestion || ''}
-                  onChange={(e) => handleInputChange('alignmentQuestion', e.target.value)}
-                  rows={3}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                    errors.alignmentQuestion ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors.alignmentQuestion && (
-                  <p className="mt-1 text-sm text-red-600">{errors.alignmentQuestion}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Enhancement Question *</label>
-                <p className="text-xs text-gray-500 mb-2">How will this secondary appointment enhance your primary academic work and benefit both your home department and the College of Connected Computing?</p>
-                <textarea
-                  value={formData.enhancementQuestion || ''}
-                  onChange={(e) => handleInputChange('enhancementQuestion', e.target.value)}
-                  rows={3}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                    errors.enhancementQuestion ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors.enhancementQuestion && (
-                  <p className="mt-1 text-sm text-red-600">{errors.enhancementQuestion}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-gray-300 bg-primary-600 text-gray-700 text-sm font-medium rounded-md shadow-sm hover:bg-primary-700"
-              >
-                <Save className="inline mr-2 h-4 w-4" />
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 // Helper function to format status names for display
 const formatStatusName = (status: string): string => {
@@ -719,9 +435,7 @@ const ApplicationDetailsModal: React.FC<{
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Primary Appointment End Date</label>
                   <p className="text-sm text-gray-900">
-                    {application.primaryAppointmentEndDate instanceof Date 
-                      ? application.primaryAppointmentEndDate.toLocaleDateString() 
-                      : application.primaryAppointmentEndDate ? new Date(application.primaryAppointmentEndDate).toLocaleDateString() : 'Not set'}
+                    {formatDateForDisplay(application.primaryAppointmentEndDate)}
                   </p>
                 </div>
                 <div>
@@ -855,6 +569,7 @@ const ApplicationDetailsModal: React.FC<{
 
 // Current Applications Tab Component
 const CurrentApplicationsTab: React.FC = () => {
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<Application[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<ApplicationStatus | 'all'>('all');
@@ -862,7 +577,6 @@ const CurrentApplicationsTab: React.FC = () => {
   const [sortBy, setSortBy] = useState<'submittedAt' | 'updatedAt' | 'status'>('submittedAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
-  const [editingApplication, setEditingApplication] = useState<Application | null>(null);
 
   // Initialize applications data from API
   useEffect(() => {
@@ -991,85 +705,6 @@ const CurrentApplicationsTab: React.FC = () => {
     }
   };
 
-  const handleSaveApplication = async (updatedApplication: Application) => {
-    try {
-      // Prepare the data for the API call
-      const updateData = {
-        // Admin fields
-        fisEntered: updatedApplication.fisEntered,
-        processingTimeWeeks: updatedApplication.processingTimeWeeks != null && String(updatedApplication.processingTimeWeeks) !== '' ? Number(updatedApplication.processingTimeWeeks) : undefined,
-        primaryAppointmentEndDate: updatedApplication.primaryAppointmentEndDate 
-          ? (updatedApplication.primaryAppointmentEndDate instanceof Date 
-              ? updatedApplication.primaryAppointmentEndDate.toISOString().split('T')[0]
-              : updatedApplication.primaryAppointmentEndDate)
-          : null,
-        
-        // Application fields
-        status: updatedApplication.status,
-        currentApprover: updatedApplication.currentApprover,
-        
-        // Question fields
-        contributionsQuestion: updatedApplication.contributionsQuestion,
-        alignmentQuestion: updatedApplication.alignmentQuestion,
-        enhancementQuestion: updatedApplication.enhancementQuestion,
-        
-        // Faculty member fields
-        facultyMember: {
-          name: updatedApplication.facultyMember.name,
-          email: updatedApplication.facultyMember.email,
-          title: updatedApplication.facultyMember.title,
-          college: updatedApplication.facultyMember.college,
-          department: updatedApplication.facultyMember.department,
-          institution: updatedApplication.facultyMember.institution
-        }
-      };
-
-      const response = await fetch(`http://localhost:3001/api/applications/${updatedApplication.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        let errorMessage = errorData.error || 'Failed to update application';
-        if (errorData.details && Array.isArray(errorData.details)) {
-          const validationErrors = errorData.details.map((detail: any) => `${detail.param}: ${detail.msg}`).join('\n');
-          errorMessage += '\n\nValidation Details:\n' + validationErrors;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
-      console.log('Server response after update:', result);
-      
-      // Update local state with the response data
-      console.log('Updating application with ID:', updatedApplication.id);
-      setApplications(prev => {
-        const updated = prev.map(app => {
-          if (app.id === updatedApplication.id) {
-            console.log('Found matching application to update:', app.id);
-            return { ...app, ...updatedApplication, ...result.data };
-          }
-          return app;
-        });
-        return updated;
-      });
-      
-      setEditingApplication(null);
-      
-      // Show success message (you might want to add a toast notification here)
-      console.log('Application updated successfully');
-      
-    } catch (error) {
-      console.error('Error saving application:', error);
-      // Show error message (you might want to add error handling UI here)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Failed to save application: ${errorMessage}`);
-    }
-  };
 
   const handleStatusUpdate = (updatedApplication: Application) => {
     setApplications(prev => prev.map(app => 
@@ -1240,14 +875,6 @@ const CurrentApplicationsTab: React.FC = () => {
         )}
       </div>
 
-      {/* Application Edit Modal */}
-      {editingApplication && (
-        <ApplicationEditModal
-          application={editingApplication}
-          onClose={() => setEditingApplication(null)}
-          onSave={handleSaveApplication}
-        />
-      )}
 
       {/* Application Details Modal */}
       {selectedApplication && (
@@ -1256,8 +883,7 @@ const CurrentApplicationsTab: React.FC = () => {
           onClose={() => setSelectedApplication(null)}
           onDownloadCV={handleDownloadCV}
           onEdit={(app) => {
-            setEditingApplication(app);
-            setSelectedApplication(null);
+            navigate(`/admin/edit/${app.id}`);
           }}
           onStatusUpdate={handleStatusUpdate}
         />

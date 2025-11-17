@@ -166,6 +166,8 @@ class EmailService {
     }
 
     const subject = `New Secondary Appointment Application - CCC Review Required`;
+    const editLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/edit/${applicationId}`;
+    
     const body = `
       <p>Dear CCC Faculty,</p>
       
@@ -175,7 +177,8 @@ class EmailService {
       <strong>Applicant:</strong> ${applicantName}<br/>
       <strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
       
-      <p>Please log into the workflow management system to review this application.</p>
+      <p>Please review this application by clicking the link below:</p>
+      <p><strong><a href="${editLink}" style="color: #0066cc; font-weight: bold;">Review Application ${applicationId}</a></strong></p>
       
       <p>If you have any questions regarding this application, please contact the Faculty Affairs office at <a href="mailto:cccfacultyaffairs@vanderbilt.edu">cccfacultyaffairs@vanderbilt.edu</a>.</p>
       

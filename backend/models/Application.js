@@ -238,7 +238,16 @@ class Application {
       fisEntryDate: this.fisEntryDate,
       processingTimeWeeks: this.processingTimeWeeks,
       primaryAppointmentEndDate: this.primaryAppointmentEndDate,
-      statusHistory: this.statusHistory || []
+      statusHistory: this.statusHistory || [],
+      // Individual approver fields for admin interface
+      departmentChairName: this.departmentChairName,
+      departmentChairEmail: this.departmentChairEmail,
+      divisionChairName: this.divisionChairName,
+      divisionChairEmail: this.divisionChairEmail,
+      deanName: this.deanName,
+      deanEmail: this.deanEmail,
+      seniorAssociateDeanName: this.seniorAssociateDeanName,
+      seniorAssociateDeanEmail: this.seniorAssociateDeanEmail
     };
   }
 
