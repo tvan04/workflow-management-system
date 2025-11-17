@@ -694,6 +694,62 @@ class EmailService {
     }
   }
 
+  // General email sending method used by EmailReminderService
+  async sendEmail(recipient, subject, textContent, htmlContent) {
+    if (!this.apiKey) {
+      throw new Error('Email API key not configured');
+    }
+
+    if (!recipient || !recipient.trim()) {
+      throw new Error('Recipient email is required');
+    }
+
+    const payload = {
+      data: {
+        subject: subject,
+        body: htmlContent || textContent,
+        to_recipients: [recipient.trim()],
+        cc_recipients: [],
+        bcc_recipients: [],
+        importance: 'normal'
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`
+    };
+
+    try {
+      console.log(`Sending email to: ${recipient}`);
+      
+      const response = await axios.post(this.apiUrl, payload, { 
+        headers,
+        timeout: 30000
+      });
+
+      if (response.status === 200) {
+        console.log(`✅ Email sent successfully to ${recipient}`);
+        return {
+          success: true,
+          recipient: recipient,
+          messageId: response.data?.data?.id || 'unknown'
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to send email to ${recipient}:`, error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
+      throw error;
+    }
+  }
+
   // Helper method to extract all approver emails from an application
   getApproverEmails(applicationData) {
     const emails = [];

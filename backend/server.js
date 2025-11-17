@@ -17,16 +17,20 @@ const settingsRoutes = require('./routes/settings');
 
 const app = express();
 
-// Security middleware with CSP configuration for iframe embedding
+// Security middleware - disable CSP from helmet to set manually
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      frameSrc: ["'self'"],
-      frameAncestors: ["'self'"],
-    },
-  },
+  contentSecurityPolicy: false, // Disable helmet CSP to set manually
 }));
+
+// Manual CSP header for PDF viewing in iframes
+app.use((req, res, next) => {
+  if (req.path.includes('/cv') && req.query.inline === 'true') {
+    res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self' http://localhost:3000 https://localhost:3000; object-src 'none';");
+  } else {
+    res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;");
+  }
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({

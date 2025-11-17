@@ -1,10 +1,12 @@
 const cron = require('node-cron');
 const Application = require('../models/Application');
+const EmailReminderService = require('./EmailReminderService');
 const moment = require('moment');
 
 class SchedulerService {
   constructor() {
     this.jobs = [];
+    this.emailReminderService = new EmailReminderService();
   }
 
   start() {
@@ -38,9 +40,24 @@ class SchedulerService {
       timezone: 'America/Chicago'
     });
 
+    // Schedule email reminders (daily at 9 AM)
+    const emailReminderJob = cron.schedule('0 9 * * *', async () => {
+      console.log('Checking for stuck applications and sending reminders...');
+      try {
+        const result = await this.emailReminderService.checkAndSendReminders();
+        console.log(`Email reminder check completed: ${result.processed} reminders sent for ${result.total} stuck applications`);
+      } catch (error) {
+        console.error('Error in email reminder job:', error);
+      }
+    }, {
+      scheduled: false,
+      timezone: 'America/Chicago'
+    });
+
     this.jobs = [
       { name: 'processingTimes', job: processingTimeJob },
-      { name: 'weeklyMetrics', job: metricsJob }
+      { name: 'weeklyMetrics', job: metricsJob },
+      { name: 'emailReminders', job: emailReminderJob }
     ];
 
     // Start all jobs
@@ -181,6 +198,17 @@ class SchedulerService {
     const report = await this.generateWeeklyReport();
     console.log('Weekly report generated');
     return report;
+  }
+
+  async triggerEmailReminders() {
+    console.log('Manually triggering email reminder check...');
+    const result = await this.emailReminderService.checkAndSendReminders();
+    console.log(`Email reminder check completed: ${result.processed} reminders sent for ${result.total} stuck applications`);
+    return result;
+  }
+
+  async getReminderStats() {
+    return await this.emailReminderService.getReminderStats();
   }
 
   getJobStatuses() {

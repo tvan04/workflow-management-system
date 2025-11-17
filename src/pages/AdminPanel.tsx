@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { College, Application, ApplicationStatus, FacultyMember } from '../types';
 import { applicationApi, settingsApi } from '../utils/api';
+import CVPreview from '../components/CVPreview';
 
 interface TabProps {
   activeTab: string;
@@ -773,6 +774,16 @@ const ApplicationDetailsModal: React.FC<{
                 );
               })()}
             </div>
+          </div>
+
+          {/* CV Preview */}
+          <div className="mt-6">
+            <h4 className="text-lg font-medium text-gray-900 mb-3">Curriculum Vitae</h4>
+            <CVPreview 
+              applicationId={application.id} 
+              fileName={application.cvFileName}
+              className="w-full"
+            />
           </div>
 
           {/* Actions */}

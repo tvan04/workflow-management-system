@@ -33,14 +33,16 @@ const CVPreview: React.FC<CVPreviewProps> = ({ applicationId, fileName, classNam
     setFileType(type);
     
     // Create preview URL for inline viewing
-    const url = `http://localhost:3001/api/applications/${applicationId}/cv?inline=true`;
+    const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    const url = `${apiBaseUrl}/applications/${applicationId}/cv?inline=true`;
     setPreviewUrl(url);
     setLoading(false);
   }, [applicationId, fileName]);
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/applications/${applicationId}/cv`);
+      const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${apiBaseUrl}/applications/${applicationId}/cv`);
       if (!response.ok) throw new Error('Failed to download file');
       
       const blob = await response.blob();

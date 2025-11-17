@@ -628,9 +628,7 @@ router.get('/:id/cv', async (req, res) => {
     if (inline) {
       // For inline viewing (preview)
       res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-      // Additional headers for iframe embedding
-      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-      res.setHeader('Content-Security-Policy', 'frame-ancestors \'self\'');
+      // Note: CSP headers are set globally in server.js for iframe embedding
     } else {
       // For download
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
