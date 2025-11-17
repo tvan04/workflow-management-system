@@ -922,6 +922,18 @@ router.patch('/:id/approve', [
         notes || 'Application denied',
         token
       );
+      
+      // Send rejection notification to applicant
+      try {
+        console.log(`🔥 REJECTION: Attempting to send rejection notification for application ${application.id} to ${application.facultyEmail}`);
+        const notificationService = new NotificationService();
+        await notificationService.sendStatusChangeNotification(application, 'rejected');
+        console.log(`✅ REJECTION: Rejection notification sent successfully for application ${application.id}`);
+      } catch (error) {
+        console.error('❌ REJECTION: Failed to send rejection notification:', error.message);
+        console.error('❌ REJECTION: Full error:', error);
+        // Don't fail the rejection if notification fails
+      }
     }
 
     res.json({

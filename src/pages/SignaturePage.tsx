@@ -12,14 +12,6 @@ import { Application } from '../types';
 import { applicationApi } from '../utils/api';
 import CVPreview from '../components/CVPreview';
 
-interface ApprovalAction {
-  applicationId: string;
-  approverEmail: string;
-  action: 'approve' | 'deny';
-  signature: string;
-  notes?: string;
-}
-
 const SignaturePage: React.FC = () => {
   const { applicationId } = useParams<{ applicationId: string }>();
   const [searchParams] = useSearchParams();
@@ -57,10 +49,38 @@ const SignaturePage: React.FC = () => {
 
       try {
         const response = await applicationApi.getById(applicationId);
-        setApplication(response.data);
-      } catch (error) {
+        const app = response.data;
+        
+        // Check if the approver email matches any of the application's approvers
+        const hasPermission = 
+          app.departmentChairEmail === approverEmail ||
+          app.divisionChairEmail === approverEmail ||
+          app.deanEmail === approverEmail ||
+          app.seniorAssociateDeanEmail === approverEmail;
+        
+        if (!hasPermission) {
+          setError('You do not have permission to view this application. Please check that you are using the correct approval link.');
+          setLoading(false);
+          return;
+        }
+        
+        // Check if this application has already been fully approved
+        if (app.status === 'completed' || app.status === 'fis_entry_pending') {
+          setError('This application has already been fully processed and no longer requires approval.');
+          setLoading(false);
+          return;
+        }
+        
+        setApplication(app);
+      } catch (error: any) {
         console.error('Error loading application:', error);
-        setError('Application not found or you do not have permission to view it.');
+        if (error.status === 404) {
+          setError('Application not found. Please check that the application ID is correct.');
+        } else if (error.status === 429) {
+          setError('Too many requests. Please wait a moment and try again.');
+        } else {
+          setError('Unable to load application. Please try again later or contact support if the problem persists.');
+        }
       } finally {
         setLoading(false);
       }
@@ -127,14 +147,6 @@ const SignaturePage: React.FC = () => {
     setError(null);
 
     try {
-      const approvalData: ApprovalAction = {
-        applicationId: applicationId!,
-        approverEmail: approverEmail!,
-        action: selectedAction,
-        signature: signature.trim(),
-        notes: notes.trim() || undefined
-      };
-
       // Call approval API using the new token-based endpoint
       const response = await fetch(`http://localhost:3001/api/applications/${applicationId}/approve`, {
         method: 'PATCH',
@@ -200,7 +212,7 @@ const SignaturePage: React.FC = () => {
             {selectedAction === 'approve' ? 'Application Approved' : 'Application Denied'}
           </h1>
           <p className="text-gray-600 mb-6">
-            Your decision has been recorded and the applicant will be notified.
+            Your decision has been recorded.
           </p>
           <div className="bg-white border border-gray-200 rounded-lg p-4 text-left">
             <p className="text-sm text-gray-600">Application: {application?.id}</p>

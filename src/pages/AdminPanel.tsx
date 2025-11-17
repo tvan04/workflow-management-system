@@ -312,14 +312,23 @@ const ApplicationDetailsModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-5 border max-w-4xl shadow-lg rounded-md bg-white">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 mr-3">
           <h3 className="text-xl font-medium text-gray-900">Application Details</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => onEdit(application)}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <Edit className="mr-1 h-4 w-4" />
+              Edit
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -499,30 +508,7 @@ const ApplicationDetailsModal: React.FC<{
               className="w-full"
             />
           </div>
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-4 pt-6 border-t">
-            <button
-              onClick={() => onDownloadCV(application)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Download CV
-            </button>
-            <button
-              onClick={() => onEdit(application)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-primary-700"
-            >
-              Close
-            </button>
-          </div>
+          
         </div>
       </div>
       

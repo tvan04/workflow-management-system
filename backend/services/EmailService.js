@@ -628,7 +628,7 @@ class EmailService {
       
       <p>After careful consideration, we regret to inform you that we are unable to approve your application for a secondary appointment at this time.</p>
       
-      <div style="margin: 20px 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px;">
+      <div style="margin: 20px 0; padding: 15px;">
         <p style="margin: 5px 0; color: #721c24;"><strong>Application ID:</strong> ${applicationId}</p>
         <p style="margin: 5px 0; color: #721c24;"><strong>Applicant:</strong> ${applicantName}</p>
         <p style="margin: 5px 0; color: #721c24;"><strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
