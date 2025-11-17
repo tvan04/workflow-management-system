@@ -426,6 +426,36 @@ router.put('/:id', [
   body('alignmentQuestion').optional().trim(),
   body('enhancementQuestion').optional().trim(),
   
+  // Approver fields
+  body('approvers.departmentChair.name').optional().trim(),
+  body('approvers.departmentChair.email').optional().trim().custom((value) => {
+    if (value && value.length > 0 && !value.includes('@')) {
+      throw new Error('Department Chair email must be valid if provided');
+    }
+    return true;
+  }),
+  body('approvers.divisionChair.name').optional().trim(),
+  body('approvers.divisionChair.email').optional().trim().custom((value) => {
+    if (value && value.length > 0 && !value.includes('@')) {
+      throw new Error('Division Chair email must be valid if provided');
+    }
+    return true;
+  }),
+  body('approvers.dean.name').optional().trim(),
+  body('approvers.dean.email').optional().trim().custom((value) => {
+    if (value && value.length > 0 && !value.includes('@')) {
+      throw new Error('Dean email must be valid if provided');
+    }
+    return true;
+  }),
+  body('approvers.seniorAssociateDean.name').optional().trim(),
+  body('approvers.seniorAssociateDean.email').optional().trim().custom((value) => {
+    if (value && value.length > 0 && !value.includes('@')) {
+      throw new Error('Senior Associate Dean email must be valid if provided');
+    }
+    return true;
+  }),
+  
   // Faculty member fields  
   body('facultyMember.name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty if provided'),
   body('facultyMember.email').optional().trim().isEmail().withMessage('Valid email is required if provided'),
@@ -520,6 +550,71 @@ router.put('/:id', [
             application.facultyMemberId
           ]
         );
+      }
+    }
+
+    // Handle approver updates
+    if (req.body.approvers) {
+      const db = require('../config/database');
+      const approverUpdates = [];
+      const approverParams = [];
+      
+      // Department Chair
+      if (req.body.approvers.departmentChair) {
+        if (req.body.approvers.departmentChair.name !== undefined) {
+          approverUpdates.push('department_chair_name = ?');
+          approverParams.push(req.body.approvers.departmentChair.name);
+        }
+        if (req.body.approvers.departmentChair.email !== undefined) {
+          approverUpdates.push('department_chair_email = ?');
+          approverParams.push(req.body.approvers.departmentChair.email);
+        }
+      }
+      
+      // Division Chair
+      if (req.body.approvers.divisionChair) {
+        if (req.body.approvers.divisionChair.name !== undefined) {
+          approverUpdates.push('division_chair_name = ?');
+          approverParams.push(req.body.approvers.divisionChair.name);
+        }
+        if (req.body.approvers.divisionChair.email !== undefined) {
+          approverUpdates.push('division_chair_email = ?');
+          approverParams.push(req.body.approvers.divisionChair.email);
+        }
+      }
+      
+      // Dean
+      if (req.body.approvers.dean) {
+        if (req.body.approvers.dean.name !== undefined) {
+          approverUpdates.push('dean_name = ?');
+          approverParams.push(req.body.approvers.dean.name);
+        }
+        if (req.body.approvers.dean.email !== undefined) {
+          approverUpdates.push('dean_email = ?');
+          approverParams.push(req.body.approvers.dean.email);
+        }
+      }
+      
+      // Senior Associate Dean
+      if (req.body.approvers.seniorAssociateDean) {
+        if (req.body.approvers.seniorAssociateDean.name !== undefined) {
+          approverUpdates.push('senior_associate_dean_name = ?');
+          approverParams.push(req.body.approvers.seniorAssociateDean.name);
+        }
+        if (req.body.approvers.seniorAssociateDean.email !== undefined) {
+          approverUpdates.push('senior_associate_dean_email = ?');
+          approverParams.push(req.body.approvers.seniorAssociateDean.email);
+        }
+      }
+      
+      // Update approvers if there are changes
+      if (approverUpdates.length > 0) {
+        approverUpdates.push('updated_at = ?');
+        approverParams.push(new Date());
+        approverParams.push(req.params.id);
+        
+        const approverQuery = `UPDATE applications SET ${approverUpdates.join(', ')} WHERE id = ?`;
+        await db.run(approverQuery, approverParams);
       }
     }
 
