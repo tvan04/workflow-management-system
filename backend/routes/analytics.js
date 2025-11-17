@@ -44,7 +44,7 @@ router.get('/trends', async (req, res) => {
         strftime('%Y-%m', datetime(submitted_at/1000, 'unixepoch')) as month,
         COUNT(*) as applications,
         AVG(CASE 
-          WHEN status = 'completed' THEN ROUND((updated_at - submitted_at) / (1000.0 * 60 * 60 * 24))
+          WHEN status = 'completed' THEN ((updated_at - submitted_at) / (1000.0 * 60 * 60 * 24))
           ELSE NULL 
         END) as avg_processing_time,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,

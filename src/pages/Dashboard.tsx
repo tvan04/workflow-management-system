@@ -67,7 +67,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
     const labels: Record<string, string> = {
       'submitted': 'Submitted',
       'ccc_review': 'CCC Review',
-      'ccc_associate_dean_review': 'CCC Associate Dean Review',
+      'ccc_associate_dean_review': 'CCC Associate Dean',
       'awaiting_primary_approval': 'Primary Approval',
       'rejected': 'Rejected',
       'fis_entry_pending': 'FIS Entry Pending',
@@ -113,9 +113,8 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
         <div className="flex items-center space-x-2">
           <span className="text-sm text-surface-600">{daysSinceUpdate} days</span>
           {isStalled && (
-            <div className="flex items-center space-x-1 text-error-600">
+            <div className="flex items-center text-error-600">
               <AlertTriangle className="h-4 w-4" />
-              <span className="text-xs font-medium">STALLED</span>
             </div>
           )}
         </div>

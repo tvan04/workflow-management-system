@@ -364,7 +364,7 @@ class Application {
     // Get average processing time for completed applications (in days)
     const avgTimeQuery = `
       SELECT AVG(
-        ROUND((updated_at - submitted_at) / (1000.0 * 60 * 60 * 24))
+        ((updated_at - submitted_at) / (1000.0 * 60 * 60 * 24))
       ) as avg_days 
       FROM applications 
       WHERE status = 'completed'
@@ -376,7 +376,7 @@ class Application {
     const stalledQuery = `
       SELECT * FROM applications
       WHERE status NOT IN ('completed', 'rejected') 
-      AND datetime(updated_at) < datetime('now', '-7 days')
+      AND CAST((julianday('now') - julianday(datetime(updated_at/1000, 'unixepoch'))) AS INTEGER) > 7
       ORDER BY updated_at ASC
     `;
     const stalledRows = await db.all(stalledQuery);
