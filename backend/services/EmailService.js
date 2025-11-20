@@ -631,9 +631,9 @@ class EmailService {
       <p>After careful consideration, we regret to inform you that we are unable to approve your application for a secondary appointment at this time.</p>
       
       <div style="margin: 20px 0; padding: 15px;">
-        <p style="margin: 5px 0; color: #721c24;"><strong>Application ID:</strong> ${applicationId}</p>
-        <p style="margin: 5px 0; color: #721c24;"><strong>Applicant:</strong> ${applicantName}</p>
-        <p style="margin: 5px 0; color: #721c24;"><strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
+        <p style="margin: 5px 0;"><strong>Application ID:</strong> ${applicationId}</p>
+        <p style="margin: 5px 0;"><strong>Applicant:</strong> ${applicantName}</p>
+        <p style="margin: 5px 0;"><strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
       </div>
       
       <p>We understand this may be disappointing news. Please know that this decision reflects the highly competitive nature of our secondary appointment program and current capacity constraints, rather than any reflection on your qualifications or contributions.</p>
@@ -695,6 +695,87 @@ class EmailService {
         success: false,
         error: error.message,
         recipient: applicantEmail
+      };
+    }
+  }
+
+  async sendCCCRejectionNotificationEmail(applicantName, applicationId, primaryAppointment, rejectedBy) {
+    if (!this.apiKey) {
+      throw new Error('Email API key not configured');
+    }
+
+    if (!this.cccFacultyEmail || !this.cccFacultyEmail.trim()) {
+      console.log('CCC faculty email not configured, skipping CCC rejection notification');
+      return;
+    }
+
+    const subject = `Application Rejected - ${applicationId}`;
+    const body = `
+      <p>Dear CCC Faculty Affairs,</p>
+      
+      <p>A secondary appointment application has been rejected.</p>
+      
+      <div style="margin: 20px 0; padding: 15px; background-color: #fef2f2; border-left: 4px solid #ef4444;">
+        <p style="margin: 5px 0; color: #721c24;"><strong>Application ID:</strong> ${applicationId}</p>
+        <p style="margin: 5px 0; color: #721c24;"><strong>Applicant:</strong> ${applicantName}</p>
+        <p style="margin: 5px 0; color: #721c24;"><strong>Primary Appointment:</strong> ${primaryAppointment || 'Not specified'}</p>
+        ${rejectedBy ? `<p style="margin: 5px 0; color: #721c24;"><strong>Rejected By:</strong> ${rejectedBy}</p>` : ''}
+        <p style="margin: 5px 0; color: #721c24;"><strong>Status:</strong> Rejected</p>
+      </div>
+      
+      <p>The applicant has been notified of this decision via email.</p>
+      
+      <p>You can view the full application details in the admin panel: <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin" style="color: #1D4ED8;">Admin Panel</a></p>
+      
+      <p>Best regards,<br/>
+      CCC Workflow Management System<br/>
+      College of Connected Computing<br/>
+      Vanderbilt University</p>
+    `;
+
+    const payload = {
+      data: {
+        subject: subject,
+        body: body,
+        to_recipients: [this.cccFacultyEmail.trim()],
+        cc_recipients: [],
+        bcc_recipients: [],
+        importance: 'normal'
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`
+    };
+
+    try {
+      console.log(`📧 CCC REJECTION: Sending rejection notification to CCC faculty at ${this.cccFacultyEmail}`);
+      const response = await axios.post(this.apiUrl, payload, { headers });
+      
+      if (response.status === 200) {
+        console.log('✅ CCC rejection notification email sent successfully');
+        return {
+          success: true,
+          recipient: this.cccFacultyEmail,
+          messageId: response.data?.data?.id || 'unknown'
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send CCC rejection notification email:', error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
+      // Don't throw the error - we don't want email failures to block status updates
+      return {
+        success: false,
+        error: error.message,
+        recipient: this.cccFacultyEmail
       };
     }
   }

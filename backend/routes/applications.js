@@ -927,7 +927,8 @@ router.patch('/:id/approve', [
       try {
         console.log(`🔥 REJECTION: Attempting to send rejection notification for application ${application.id} to ${application.facultyEmail}`);
         const notificationService = new NotificationService();
-        await notificationService.sendStatusChangeNotification(application, 'rejected');
+        const rejectedBy = `${tokenData.approver_name} (${tokenData.approver_role})`;
+        await notificationService.sendStatusChangeNotification(application, 'rejected', null, rejectedBy);
         console.log(`✅ REJECTION: Rejection notification sent successfully for application ${application.id}`);
       } catch (error) {
         console.error('❌ REJECTION: Failed to send rejection notification:', error.message);

@@ -32,7 +32,7 @@ class NotificationService {
     }
   }
 
-  async sendStatusChangeNotification(application, newStatus, previousApproverRole = null) {
+  async sendStatusChangeNotification(application, newStatus, previousApproverRole = null, rejectedBy = null) {
     try {
       const applicantName = application.facultyName;
       
@@ -113,19 +113,29 @@ class NotificationService {
         console.log(`✅ Completion confirmation email sent for ${application.id}`);
       }
       
-      // If status moved to rejected, send rejection notification to applicant
+      // If status moved to rejected, send rejection notification to applicant and CCC faculty
       if (newStatus === 'rejected') {
-        console.log(`📧 REJECTION: Status changed to Rejected - sending rejection notification for ${application.id}`);
+        console.log(`📧 REJECTION: Status changed to Rejected - sending rejection notifications for ${application.id}`);
         console.log(`📧 REJECTION: Applicant email: ${application.facultyEmail}, Name: ${applicantName}`);
         const primaryAppointment = `${application.facultyCollege}, ${application.facultyDepartment || 'No Department'}`;
         
+        // Send notification to applicant
         await this.emailService.sendRejectionNotificationEmail(
           application.facultyEmail,
           applicantName,
           application.id,
           primaryAppointment
         );
-        console.log(`✅ REJECTION: Rejection notification email sent successfully for ${application.id}`);
+        console.log(`✅ REJECTION: Rejection notification email sent to applicant for ${application.id}`);
+        
+        // Send notification to CCC faculty
+        await this.emailService.sendCCCRejectionNotificationEmail(
+          applicantName,
+          application.id,
+          primaryAppointment,
+          rejectedBy
+        );
+        console.log(`✅ REJECTION: CCC faculty notification email sent for ${application.id}`);
       }
       
     } catch (error) {
