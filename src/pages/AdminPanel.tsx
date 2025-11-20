@@ -523,10 +523,16 @@ const ApplicationDetailsModal: React.FC<{
           </div>
 
           {/* Admin Information */}
-          {(application.primaryAppointmentEndDate || application.fisEntered !== undefined) && (
+          {(application.primaryAppointmentStartDate || application.primaryAppointmentEndDate || application.fisEntered !== undefined) && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h4 className="text-lg font-medium text-gray-900 mb-3">Administrative Information</h4>
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Primary Appointment Start Date</label>
+                  <p className="text-sm text-gray-900">
+                    {formatDateForDisplay(application.primaryAppointmentStartDate)}
+                  </p>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Primary Appointment End Date</label>
                   <p className="text-sm text-gray-900">
@@ -534,7 +540,7 @@ const ApplicationDetailsModal: React.FC<{
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">FIS Entered</label>
+                  <label className="block text-sm font-medium text-gray-700">Secondary Appointment FIS Entered?</label>
                   <p className="text-sm text-gray-900">
                     {application.fisEntered ? 'Yes' : 'No'}
                   </p>

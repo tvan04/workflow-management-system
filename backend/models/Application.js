@@ -46,6 +46,7 @@ class Application {
     this.fisEntered = data.fisEntered || data.fis_entered || false;
     this.fisEntryDate = data.fisEntryDate || data.fis_entry_date;
     this.processingTimeWeeks = data.processingTimeWeeks || data.processing_time_weeks;
+    this.primaryAppointmentStartDate = data.primaryAppointmentStartDate || data.primary_appointment_start_date;
     this.primaryAppointmentEndDate = data.primaryAppointmentEndDate || data.primary_appointment_end_date;
   }
 
@@ -60,8 +61,8 @@ class Application {
         division_chair_name, division_chair_email, dean_name, dean_email,
         senior_associate_dean_name, senior_associate_dean_email, has_departments,
         submitted_at, updated_at, current_approver, fis_entered, fis_entry_date,
-        processing_time_weeks, primary_appointment_end_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        processing_time_weeks, primary_appointment_start_date, primary_appointment_end_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
@@ -73,7 +74,7 @@ class Application {
       this.divisionChairEmail, this.deanName, this.deanEmail, this.seniorAssociateDeanName,
       this.seniorAssociateDeanEmail, this.hasDepartments, this.submittedAt, this.updatedAt,
       this.currentApprover, this.fisEntered, this.fisEntryDate, this.processingTimeWeeks,
-      this.primaryAppointmentEndDate
+      this.primaryAppointmentStartDate, this.primaryAppointmentEndDate
     ];
 
     await db.run(query, params);
@@ -87,7 +88,7 @@ class Application {
   async update(updates) {
     const allowedFields = [
       'status', 'currentApprover', 'fisEntered', 'fisEntryDate', 'processingTimeWeeks',
-      'primaryAppointmentEndDate'
+      'primaryAppointmentStartDate', 'primaryAppointmentEndDate'
     ];
 
     const updateFields = [];
@@ -237,6 +238,7 @@ class Application {
       fisEntered: this.fisEntered,
       fisEntryDate: this.fisEntryDate,
       processingTimeWeeks: this.processingTimeWeeks,
+      primaryAppointmentStartDate: this.primaryAppointmentStartDate,
       primaryAppointmentEndDate: this.primaryAppointmentEndDate,
       statusHistory: this.statusHistory || [],
       // Individual approver fields for admin interface

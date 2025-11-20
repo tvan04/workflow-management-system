@@ -149,6 +149,9 @@ const AdminEditApplication: React.FC = () => {
           ...response.data,
           submittedAt: new Date(response.data.submittedAt),
           updatedAt: new Date(response.data.updatedAt),
+          primaryAppointmentStartDate: response.data.primaryAppointmentStartDate 
+            ? parseDateFromInput(response.data.primaryAppointmentStartDate.split('T')[0]) 
+            : undefined,
           primaryAppointmentEndDate: response.data.primaryAppointmentEndDate 
             ? parseDateFromInput(response.data.primaryAppointmentEndDate.split('T')[0]) 
             : undefined,
@@ -282,6 +285,24 @@ const AdminEditApplication: React.FC = () => {
     if (!formData.enhancementQuestion?.trim()) {
       newErrors.enhancementQuestion = 'Enhancement question is required';
     }
+    
+    // Admin-only required fields
+    if (!formData.primaryAppointmentStartDate) {
+      newErrors.primaryAppointmentStartDate = 'Primary appointment start date is required';
+    }
+    if (!formData.primaryAppointmentEndDate) {
+      newErrors.primaryAppointmentEndDate = 'Primary appointment end date is required';
+    }
+    
+    // Cross-field validation: start date must be before end date
+    if (formData.primaryAppointmentStartDate && formData.primaryAppointmentEndDate) {
+      const startDate = new Date(formData.primaryAppointmentStartDate);
+      const endDate = new Date(formData.primaryAppointmentEndDate);
+      if (startDate >= endDate) {
+        newErrors.primaryAppointmentStartDate = 'Start date must be before end date';
+        newErrors.primaryAppointmentEndDate = 'End date must be after start date';
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -298,6 +319,9 @@ const AdminEditApplication: React.FC = () => {
         // Admin fields
         fisEntered: formData.fisEntered,
         processingTimeWeeks: formData.processingTimeWeeks != null && String(formData.processingTimeWeeks) !== '' ? Number(formData.processingTimeWeeks) : undefined,
+        primaryAppointmentStartDate: formData.primaryAppointmentStartDate 
+          ? formatDateForInput(formData.primaryAppointmentStartDate)
+          : null,
         primaryAppointmentEndDate: formData.primaryAppointmentEndDate 
           ? formatDateForInput(formData.primaryAppointmentEndDate)
           : null,
@@ -384,6 +408,9 @@ const AdminEditApplication: React.FC = () => {
       // Admin-only fields
       fisEntered: formData.fisEntered,
       processingTimeWeeks: formData.processingTimeWeeks != null && String(formData.processingTimeWeeks) !== '' ? Number(formData.processingTimeWeeks) : undefined,
+      primaryAppointmentStartDate: formData.primaryAppointmentStartDate 
+        ? formatDateForInput(formData.primaryAppointmentStartDate)
+        : null,
       primaryAppointmentEndDate: formData.primaryAppointmentEndDate 
         ? formatDateForInput(formData.primaryAppointmentEndDate)
         : null,
@@ -764,28 +791,60 @@ const AdminEditApplication: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Primary Appointment End Date
+                Primary Appointment Start Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
-                value={formatDateForInput(formData.primaryAppointmentEndDate)}
-                onChange={(e) => handleInputChange('primaryAppointmentEndDate', parseDateFromInput(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                value={formatDateForInput(formData.primaryAppointmentStartDate)}
+                onChange={(e) => handleInputChange('primaryAppointmentStartDate', parseDateFromInput(e.target.value))}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.primaryAppointmentStartDate ? 'border-red-300' : 'border-gray-300'
+                }`}
+                required
               />
+              {errors.primaryAppointmentStartDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.primaryAppointmentStartDate}</p>
+              )}
               <p className="mt-1 text-xs text-gray-500">
                 This date is only visible to administrators
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">FIS Entered</label>
-              <select
-                value={formData.fisEntered.toString()}
-                onChange={(e) => handleInputChange('fisEntered', e.target.value === 'true')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="false">No</option>
-                <option value="true">Yes</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Primary Appointment End Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={formatDateForInput(formData.primaryAppointmentEndDate)}
+                onChange={(e) => handleInputChange('primaryAppointmentEndDate', parseDateFromInput(e.target.value))}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.primaryAppointmentEndDate ? 'border-red-300' : 'border-gray-300'
+                }`}
+                required
+              />
+              {errors.primaryAppointmentEndDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.primaryAppointmentEndDate}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                This date is only visible to administrators
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Appointment FIS Entered?</label>
+              {formData.status === 'fis_entry_pending' || formData.status === 'completed' ? (
+                <select
+                  value={formData.fisEntered.toString()}
+                  onChange={(e) => handleInputChange('fisEntered', e.target.value === 'true')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              ) : (
+                <div className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
+                  Not yet approved
+                </div>
+              )}
             </div>
           </div>
         </div>

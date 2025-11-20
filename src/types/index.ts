@@ -75,6 +75,7 @@ export interface Application {
   fisEntered: boolean;
   fisEntryDate?: Date;
   processingTimeWeeks?: number;
+  primaryAppointmentStartDate?: Date; // Admin-only field
   primaryAppointmentEndDate?: Date; // Admin-only field
   duration?: string;
   effectiveDate?: string;
