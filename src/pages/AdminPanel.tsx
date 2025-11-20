@@ -13,7 +13,8 @@ import {
   Download,
   Eye,
   Search,
-  ArrowUpDown
+  ArrowUpDown,
+  Mail
 } from 'lucide-react';
 import { College, Application, ApplicationStatus } from '../types';
 import { applicationApi, settingsApi } from '../utils/api';
@@ -222,6 +223,8 @@ const ApplicationDetailsModal: React.FC<{
 }> = ({ application, onClose, onDownloadCV, onEdit, onStatusUpdate }) => {
   const [showConfirmApproval, setShowConfirmApproval] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showConfirmReject, setShowConfirmReject] = useState(false);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
 
   const getNextStatus = (currentStatus: ApplicationStatus): ApplicationStatus | null => {
     switch (currentStatus) {
@@ -303,11 +306,69 @@ const ApplicationDetailsModal: React.FC<{
       
       setShowConfirmApproval(false);
       alert('Application status updated successfully!');
+      onClose();
     } catch (error: any) {
       console.error('Failed to update application status:', error);
       alert(`Failed to update application status: ${error.message}`);
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleRejectApplication = async () => {
+    setIsUpdatingStatus(true);
+    try {
+      await applicationApi.updateStatus(
+        application.id,
+        'rejected',
+        'Rejected by CCC Admin',
+        'CCC Admin'
+      );
+      
+      // Fetch the updated application with fresh status history
+      const response = await applicationApi.getById(application.id);
+      const updatedApplication = {
+        ...response.data,
+        submittedAt: new Date(response.data.submittedAt),
+        updatedAt: new Date(response.data.updatedAt),
+        statusHistory: response.data.statusHistory?.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        })) || []
+      };
+      onStatusUpdate(updatedApplication);
+      
+      setShowConfirmReject(false);
+      alert('Application has been rejected successfully.');
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to reject application:', error);
+      alert(`Failed to reject application: ${error.message}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    setIsResendingEmail(true);
+    try {
+      const response = await fetch(`http://localhost:3001/api/applications/${application.id}/resend-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to resend email notification');
+      }
+
+      alert('Email notification resent successfully.');
+      onClose();
+    } catch (error: any) {
+      console.error('Failed to resend email notification:', error);
+      alert(`Failed to resend email notification: ${error.message}`);
+    } finally {
+      setIsResendingEmail(false);
     }
   };
   return (
@@ -380,16 +441,40 @@ const ApplicationDetailsModal: React.FC<{
               </div>
             )}
             
-            {/* Manual Approval Button */}
-            {getNextStatus(application.status) && (
-              <div className="mt-4 ml-10">
-                <button
-                  onClick={() => setShowConfirmApproval(true)}
-                  disabled={isUpdatingStatus}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-red-400 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUpdatingStatus ? 'Updating...' : 'Approve Current Step Manually'}
-                </button>
+            {/* Action Buttons */}
+            {(getNextStatus(application.status) || (application.status !== 'completed' && application.status !== 'rejected')) && (
+              <div className="mt-4 ml-10 flex space-x-3">
+                {getNextStatus(application.status) && (
+                  <button
+                    onClick={() => setShowConfirmApproval(true)}
+                    disabled={isUpdatingStatus}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdatingStatus ? 'Updating...' : 'Approve Current Step Manually'}
+                  </button>
+                )}
+                
+                {application.status !== 'completed' && application.status !== 'rejected' && (
+                  <>
+                    <button
+                      onClick={() => setShowConfirmReject(true)}
+                      disabled={isUpdatingStatus}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <X className="inline mr-1 h-3 w-3" />
+                      {isUpdatingStatus ? 'Rejecting...' : 'Reject Application'}
+                    </button>
+                    
+                    <button
+                      onClick={handleResendEmail}
+                      disabled={isResendingEmail}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Mail className="inline mr-1 h-3 w-3" />
+                      {isResendingEmail ? 'Sending...' : 'Resend Email Notification'}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -544,6 +629,44 @@ const ApplicationDetailsModal: React.FC<{
                   className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 disabled:opacity-50"
                 >
                   {isUpdatingStatus ? 'Approving...' : 'Yes, Approve'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Rejection Confirmation Modal */}
+      {showConfirmReject && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-60">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <X className="mx-auto h-12 w-12 text-red-600" />
+              <h3 className="text-lg font-medium text-gray-900 mt-2">Confirm Application Rejection</h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  Are you sure you want to reject this application? This action cannot be undone.
+                </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Current Status: <strong>{formatStatusName(application.status)}</strong>
+                  <br />
+                  New Status: <strong>Rejected</strong>
+                </p>
+              </div>
+              <div className="items-center px-4 py-3 space-x-4">
+                <button
+                  onClick={() => setShowConfirmReject(false)}
+                  disabled={isUpdatingStatus}
+                  className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-700 disabled:opacity-50"
+                >
+                  No, Cancel
+                </button>
+                <button
+                  onClick={handleRejectApplication}
+                  disabled={isUpdatingStatus}
+                  className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isUpdatingStatus ? 'Rejecting...' : 'Yes, Reject'}
                 </button>
               </div>
             </div>

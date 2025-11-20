@@ -951,6 +951,46 @@ router.patch('/:id/approve', [
   }
 });
 
+// POST /api/applications/:id/resend-notification - Resend notification to current approver
+router.post('/:id/resend-notification', async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id);
+    
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Use NotificationService to resend appropriate notification for current status
+    const NotificationService = require('../services/NotificationService');
+    const notificationService = new NotificationService();
+    
+    // Resend the notification for the current status
+    switch (application.status) {
+      case 'ccc_review':
+        // Resend CCC Review notification (initial submission)
+        await notificationService.sendApplicationSubmittedNotification(application);
+        break;
+        
+      case 'ccc_associate_dean_review':
+      case 'awaiting_primary_approval':  
+      case 'fis_entry_pending':
+        // Resend notification for current status
+        await notificationService.sendStatusChangeNotification(application, application.status);
+        break;
+        
+      default:
+        return res.status(400).json({ 
+          error: 'Cannot resend notification for applications in this status' 
+        });
+    }
+
+    res.json({ message: 'Notification resent successfully' });
+  } catch (error) {
+    console.error('Error resending notification:', error);
+    res.status(500).json({ error: 'Failed to resend notification' });
+  }
+});
+
 // Helper function to get approval hierarchy for an application
 function getApprovalHierarchy(application) {
   const hierarchy = [];

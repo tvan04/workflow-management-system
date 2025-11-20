@@ -258,8 +258,9 @@ If you have already processed this application or if there are any issues, pleas
 Thank you for your prompt attention to this matter.
 
 Best regards,
-College of Connected Computing Administrative Team
-Vanderbilt University
+CCC Faculty Affairs 
+College of Connected Computing 
+Vanderbilt University 
     `;
 
     const html = `
@@ -311,7 +312,8 @@ Vanderbilt University
       <p>Thank you for your prompt attention to this matter.</p>
       
       <p>Best regards,<br>
-      College of Connected Computing Administrative Team<br>
+      CCC Faculty Affairs<br>
+      College of Connected Computing<br>
       Vanderbilt University</p>
     </div>
     
