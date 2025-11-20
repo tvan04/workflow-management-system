@@ -602,7 +602,3 @@ For technical support or questions about the CCC Secondary Appointment Workflow 
 
 **CCC Faculty Affairs**  
 Email: cccfacultyaffairs@vanderbilt.edu  
-Phone: (615) 322-XXXX
-
-**System Administrator**  
-Email: admin@ccc.vanderbilt.edu
