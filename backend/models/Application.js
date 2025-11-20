@@ -154,7 +154,14 @@ class Application {
         if (this.hasDepartments && this.departmentChairName) {
           return `${this.departmentChairName} (Department Chair)`;
         }
-        return `${this.deanName} (Dean)`;
+        // For schools without departments, check Associate Dean first, then Dean
+        if (this.seniorAssociateDeanName) {
+          return `${this.seniorAssociateDeanName} (Associate Dean)`;
+        }
+        if (this.deanName) {
+          return `${this.deanName} (Dean)`;
+        }
+        return null;
       case 'fis_entry_pending':
         return 'CCC Staff (FIS Entry)';
       case 'completed':
@@ -166,12 +173,17 @@ class Application {
   }
 
   async getStatusHistory() {
-    const query = `
-      SELECT * FROM status_history 
-      WHERE application_id = ? 
-      ORDER BY timestamp ASC
-    `;
-    return await db.all(query, [this.id]);
+    try {
+      const query = `
+        SELECT * FROM status_history 
+        WHERE application_id = ? 
+        ORDER BY timestamp ASC
+      `;
+      return await db.all(query, [this.id]);
+    } catch (error) {
+      console.error(`Error loading status history for application ${this.id}:`, error);
+      return []; // Return empty array if status history fails to load
+    }
   }
 
   calculateProcessingTime() {
@@ -263,7 +275,12 @@ class Application {
     const app = new Application(row);
     
     // Load status history
-    app.statusHistory = await app.getStatusHistory();
+    try {
+      app.statusHistory = await app.getStatusHistory();
+    } catch (error) {
+      console.error(`Error loading status history for application ${app.id}:`, error);
+      app.statusHistory = []; // Set empty array if status history fails
+    }
     
     return app;
   }
@@ -307,7 +324,12 @@ class Application {
       const app = new Application(row);
       
       // Load status history for each application
-      app.statusHistory = await app.getStatusHistory();
+      try {
+        app.statusHistory = await app.getStatusHistory();
+      } catch (error) {
+        console.error(`Error loading status history for application ${app.id}:`, error);
+        app.statusHistory = []; // Set empty array if status history fails
+      }
       
       applications.push(app);
     }
@@ -330,7 +352,12 @@ class Application {
       const app = new Application(row);
       
       // Load status history for each application
-      app.statusHistory = await app.getStatusHistory();
+      try {
+        app.statusHistory = await app.getStatusHistory();
+      } catch (error) {
+        console.error(`Error loading status history for application ${app.id}:`, error);
+        app.statusHistory = []; // Set empty array if status history fails
+      }
       
       applications.push(app);
     }

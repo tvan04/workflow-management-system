@@ -542,18 +542,55 @@ router.put('/:id', [
       // Update faculty member if there are changes
       if (Object.keys(facultyUpdates).length > 0) {
         const db = require('../config/database');
+        
+        // Update the faculty_members table
         await db.run(
           'UPDATE faculty_members SET name = ?, email = ?, title = ?, college = ?, department = ?, institution = ? WHERE id = ?',
           [
-            facultyUpdates.name || application.facultyMember.name,
-            facultyUpdates.email || application.facultyMember.email,
-            facultyUpdates.title || application.facultyMember.title,
-            facultyUpdates.college || application.facultyMember.college,
-            facultyUpdates.department || application.facultyMember.department,
-            facultyUpdates.institution || application.facultyMember.institution,
+            facultyUpdates.name || application.facultyName,
+            facultyUpdates.email || application.facultyEmail,
+            facultyUpdates.title || application.facultyTitle,
+            facultyUpdates.college || application.facultyCollege,
+            facultyUpdates.department || (application.facultyDepartment || null),
+            facultyUpdates.institution || application.facultyInstitution,
             application.facultyMemberId
           ]
         );
+        
+        // Also update the embedded faculty data in the applications table
+        const appFacultyUpdates = [];
+        const appFacultyParams = [];
+        
+        if (facultyUpdates.name) {
+          appFacultyUpdates.push('faculty_name = ?');
+          appFacultyParams.push(facultyUpdates.name);
+        }
+        if (facultyUpdates.email) {
+          appFacultyUpdates.push('faculty_email = ?');
+          appFacultyParams.push(facultyUpdates.email);
+        }
+        if (facultyUpdates.title) {
+          appFacultyUpdates.push('faculty_title = ?');
+          appFacultyParams.push(facultyUpdates.title);
+        }
+        if (facultyUpdates.college) {
+          appFacultyUpdates.push('faculty_college = ?');
+          appFacultyParams.push(facultyUpdates.college);
+        }
+        if (facultyUpdates.department !== undefined) {
+          appFacultyUpdates.push('faculty_department = ?');
+          appFacultyParams.push(facultyUpdates.department);
+        }
+        if (facultyUpdates.institution) {
+          appFacultyUpdates.push('faculty_institution = ?');
+          appFacultyParams.push(facultyUpdates.institution);
+        }
+        
+        if (appFacultyUpdates.length > 0) {
+          appFacultyParams.push(req.params.id);
+          const appFacultyQuery = `UPDATE applications SET ${appFacultyUpdates.join(', ')} WHERE id = ?`;
+          await db.run(appFacultyQuery, appFacultyParams);
+        }
       }
     }
 
