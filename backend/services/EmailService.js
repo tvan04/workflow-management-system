@@ -133,7 +133,7 @@ class EmailService {
       case 'dean':
         return approverName || 'Dean';
       case 'senior_associate_dean':
-        return approverName || 'Senior Associate Dean';
+        return approverName || 'Associate Dean';
       default:
         return approverName || 'Approver';
     }
@@ -150,7 +150,7 @@ class EmailService {
       case 'dean':
         return 'As the Dean, your approval is required for this faculty member from your school/college.';
       case 'senior_associate_dean':
-        return 'As the Senior Associate Dean, your approval is required for this faculty member from your school/college.';
+        return 'As the Associate Dean, your approval is required for this faculty member from your school/college.';
       default:
         return 'Your approval is required to proceed with this request.';
     }

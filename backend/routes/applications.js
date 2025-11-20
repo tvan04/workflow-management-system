@@ -412,6 +412,7 @@ router.put('/:id', [
   // Admin-only fields
   body('fisEntered').optional().isBoolean().withMessage('FIS entered must be boolean'),
   body('processingTimeWeeks').optional().isNumeric().withMessage('Processing time must be numeric'),
+  body('primaryAppointmentStartDate').optional().isISO8601().withMessage('Valid start date required'),
   body('primaryAppointmentEndDate').optional().isISO8601().withMessage('Valid end date required'),
   
   // Application fields
@@ -489,6 +490,9 @@ router.put('/:id', [
     }
     if (req.body.processingTimeWeeks !== undefined) {
       updates.processingTimeWeeks = parseFloat(req.body.processingTimeWeeks);
+    }
+    if (req.body.primaryAppointmentStartDate !== undefined) {
+      updates.primaryAppointmentStartDate = req.body.primaryAppointmentStartDate;
     }
     if (req.body.primaryAppointmentEndDate !== undefined) {
       updates.primaryAppointmentEndDate = req.body.primaryAppointmentEndDate;
@@ -910,8 +914,13 @@ router.patch('/:id/approve', [
 
       // Send notifications for next step if approved and nextStatus exists
       if (nextStatus) {
-        const notificationService = new NotificationService();
-        await notificationService.sendStatusChangeNotification(application, nextStatus, tokenData.approver_role);
+        try {
+          const notificationService = new NotificationService();
+          await notificationService.sendStatusChangeNotification(application, nextStatus, tokenData.approver_role);
+        } catch (notificationError) {
+          console.error('Failed to send status change notification:', notificationError.message);
+          // Don't fail the approval if notification fails
+        }
       }
     } else {
       // Deny application
@@ -930,9 +939,9 @@ router.patch('/:id/approve', [
         const rejectedBy = `${tokenData.approver_name} (${tokenData.approver_role})`;
         await notificationService.sendStatusChangeNotification(application, 'rejected', null, rejectedBy);
         console.log(`✅ REJECTION: Rejection notification sent successfully for application ${application.id}`);
-      } catch (error) {
-        console.error('❌ REJECTION: Failed to send rejection notification:', error.message);
-        console.error('❌ REJECTION: Full error:', error);
+      } catch (notificationError) {
+        console.error('❌ REJECTION: Failed to send rejection notification:', notificationError.message);
+        console.error('❌ REJECTION: Full error:', notificationError);
         // Don't fail the rejection if notification fails
       }
     }

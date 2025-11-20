@@ -67,7 +67,7 @@ const getApproversForApplication = (application: Application) => {
   
   if (application.seniorAssociateDeanName || application.seniorAssociateDeanEmail) {
     approvers.push({
-      role: 'Senior Associate Dean',
+      role: 'Associate Dean',
       key: 'seniorAssociateDean', 
       name: application.seniorAssociateDeanName || '',
       email: application.seniorAssociateDeanEmail || ''
@@ -107,7 +107,7 @@ const getApproversForApplication = (application: Application) => {
     
     if (chain.seniorAssociateDean && (chain.seniorAssociateDean.name || chain.seniorAssociateDean.email)) {
       approvers.push({
-        role: 'Senior Associate Dean',
+        role: 'Associate Dean',
         key: 'seniorAssociateDean', 
         name: chain.seniorAssociateDean.name || '',
         email: chain.seniorAssociateDean.email || ''

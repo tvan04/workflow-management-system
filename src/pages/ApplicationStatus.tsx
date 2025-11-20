@@ -269,19 +269,44 @@ const ApplicationStatus: React.FC = () => {
     //   description: 'CCC faculty members are voting on your appointment.',
     // });
 
-    // Add primary approval step
-    if (app.approvalChain.hasDepartments && app.approvalChain.departmentChair) {
-      steps.push({
-        key: 'awaiting_primary_approval',
-        label: 'Department Chair Approval',
-        description: `Waiting for approval from your department chair: ${app.approvalChain.departmentChair.name}`,
+    // Add primary approval steps dynamically based on approval chain
+    const primaryApprovers = [];
+    
+    if (app.approvalChain.departmentChair) {
+      primaryApprovers.push({
+        title: 'Department Chair',
+        name: app.approvalChain.departmentChair.name
       });
     }
-
-    steps.push({
-      key: 'awaiting_primary_approval',
-      label: 'Dean Approval',
-      description: `Waiting for approval from your college dean: ${app.approvalChain.dean.name}`,
+    
+    if (app.approvalChain.divisionChair) {
+      primaryApprovers.push({
+        title: 'Division Chair',
+        name: app.approvalChain.divisionChair.name
+      });
+    }
+    
+    if (app.approvalChain.seniorAssociateDean) {
+      primaryApprovers.push({
+        title: 'Associate Dean',
+        name: app.approvalChain.seniorAssociateDean.name
+      });
+    }
+    
+    if (app.approvalChain.dean) {
+      primaryApprovers.push({
+        title: 'Dean',
+        name: app.approvalChain.dean.name
+      });
+    }
+    
+    // Add steps for each primary approver
+    primaryApprovers.forEach((approver, index) => {
+      steps.push({
+        key: 'awaiting_primary_approval',
+        label: `${approver.title} Approval`,
+        description: `Waiting for approval from your ${approver.title.toLowerCase()}: ${approver.name}`,
+      });
     });
 
 
@@ -494,27 +519,26 @@ const ApplicationStatus: React.FC = () => {
                 <span>{application.approvalChain.departmentChair.name}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span>Dean:</span>
-              <span>{application.approvalChain.dean.name}</span>
-            </div>
+            {application.approvalChain.divisionChair && (
+              <div className="flex justify-between">
+                <span>Division Chair:</span>
+                <span>{application.approvalChain.divisionChair.name}</span>
+              </div>
+            )}
+            {application.approvalChain.seniorAssociateDean && (
+              <div className="flex justify-between">
+                <span>Associate Dean:</span>
+                <span>{application.approvalChain.seniorAssociateDean.name}</span>
+              </div>
+            )}
+            {application.approvalChain.dean && (
+              <div className="flex justify-between">
+                <span>Dean:</span>
+                <span>{application.approvalChain.dean.name}</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex justify-center space-x-4">
-        <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-          <Download className="mr-2 h-4 w-4" />
-          Download Application
-        </button>
-        <button 
-          onClick={() => setApplication(null)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
-        >
-          <Search className="mr-2 h-4 w-4" />
-          Track Another Application
-        </button>
       </div>
     </div>
   );

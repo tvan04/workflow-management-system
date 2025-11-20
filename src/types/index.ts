@@ -46,7 +46,7 @@ export interface ApprovalChain {
     name: string;
     email: string;
   };
-  dean: {
+  dean?: {
     name: string;
     email: string;
   };

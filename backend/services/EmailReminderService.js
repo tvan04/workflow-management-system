@@ -173,7 +173,7 @@ class EmailReminderService {
     // Check senior associate dean
     if (application.seniorAssociateDeanEmail) {
       return {
-        name: application.seniorAssociateDeanName || 'Senior Associate Dean',
+        name: application.seniorAssociateDeanName || 'Associate Dean',
         email: application.seniorAssociateDeanEmail
       };
     }

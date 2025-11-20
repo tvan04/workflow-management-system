@@ -242,6 +242,86 @@ const ApplicationDetailsModal: React.FC<{
     }
   };
 
+  const getCurrentApprover = (application: Application): string | null => {
+    const { status } = application;
+
+    switch (status) {
+      case 'submitted':
+        return 'CCC Faculty';
+      
+      case 'ccc_review':
+        return 'CCC Faculty';
+      
+      case 'ccc_associate_dean_review':
+        return 'CCC Associate Dean';
+      
+      case 'awaiting_primary_approval':
+        // Determine the current approver based on who has already approved and who's next
+        // Check status history to see which approvers have completed their part
+        const approvedBy = application.statusHistory?.map(h => h.approver?.toLowerCase()) || [];
+        
+        // Create ordered list of potential approvers
+        const approverChain = [];
+        if (application.departmentChairName && application.departmentChairEmail) {
+          approverChain.push({
+            name: application.departmentChairName,
+            title: 'Department Chair',
+            email: application.departmentChairEmail
+          });
+        }
+        if (application.divisionChairName && application.divisionChairEmail) {
+          approverChain.push({
+            name: application.divisionChairName,
+            title: 'Division Chair', 
+            email: application.divisionChairEmail
+          });
+        }
+        if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail) {
+          approverChain.push({
+            name: application.seniorAssociateDeanName,
+            title: 'Associate Dean',
+            email: application.seniorAssociateDeanEmail
+          });
+        }
+        if (application.deanName && application.deanEmail) {
+          approverChain.push({
+            name: application.deanName,
+            title: 'Dean',
+            email: application.deanEmail
+          });
+        }
+        
+        // Find the first approver who hasn't approved yet
+        for (const approver of approverChain) {
+          const hasApproved = approvedBy.some(approved => 
+            approved && (
+              approved.includes(approver.name.toLowerCase()) ||
+              approved.includes(approver.email.toLowerCase()) ||
+              approved.includes(approver.title.toLowerCase())
+            )
+          );
+          if (!hasApproved) {
+            return `${approver.title} (${approver.name})`;
+          }
+        }
+        
+        // If all have approved or none found, return the last in chain or generic
+        return approverChain.length > 0 
+          ? `${approverChain[approverChain.length - 1].title} (${approverChain[approverChain.length - 1].name})`
+          : 'Primary Approver (Not Specified)';
+      
+      case 'fis_entry_pending':
+        return 'CCC Faculty (FIS Entry)';
+      
+      case 'completed':
+      case 'rejected':
+        return null;
+      
+      default:
+        return 'Unknown';
+    }
+  };
+
   const handleManualApproval = async () => {
     const nextStatus = getNextStatus(application.status);
     if (!nextStatus) {
@@ -429,10 +509,10 @@ const ApplicationDetailsModal: React.FC<{
           <div>
             <h4 className="text-lg font-medium text-gray-900 mb-3">Application Progress</h4>
             <ApplicationProgress status={application.status} />
-            {application.currentApprover && (
+            {getCurrentApprover(application) && (
               <div className="mt-3 p-3 bg-blue-50 rounded-md">
                 <p className="text-sm text-blue-800">
-                  <strong>Current Approver:</strong> {application.currentApprover}
+                  <strong>Current Approver:</strong> {getCurrentApprover(application)}
                 </p>
               </div>
             )}
@@ -698,11 +778,14 @@ const CurrentApplicationsTab: React.FC = () => {
         // Convert date strings to Date objects
         const applicationsWithDates = response.data.map(app => ({
           ...app,
-          submittedAt: new Date(app.submittedAt),
-          updatedAt: new Date(app.updatedAt),
+          submittedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+          updatedAt: app.updatedAt ? new Date(app.updatedAt) : new Date(),
+          primaryAppointmentStartDate: app.primaryAppointmentStartDate ? new Date(app.primaryAppointmentStartDate) : null,
+          primaryAppointmentEndDate: app.primaryAppointmentEndDate ? new Date(app.primaryAppointmentEndDate) : null,
+          fisEntryDate: app.fisEntryDate ? new Date(app.fisEntryDate) : null,
           statusHistory: app.statusHistory?.map((item: any) => ({
             ...item,
-            timestamp: new Date(item.timestamp)
+            timestamp: item.timestamp ? new Date(item.timestamp) : new Date()
           })) || []
         }));
         console.log('Loaded applications from API:', applicationsWithDates.map(app => ({ id: app.id, name: app.facultyMember.name })));
@@ -925,14 +1008,14 @@ const CurrentApplicationsTab: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
+                    <div className="min-w-0 max-w-xs">
+                      <div className="text-sm font-medium text-gray-900 truncate">
                         {application.facultyMember.name}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 truncate">
                         {application.facultyMember.email}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 truncate">
                         {application.facultyMember.college}
                         {application.facultyMember.department && ` • ${application.facultyMember.department}`}
                       </div>

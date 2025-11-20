@@ -38,11 +38,14 @@ const UserDashboard: React.FC = () => {
       const response = await applicationApi.getByEmail(user.email);
       const apps = response.data.map((app: any) => ({
         ...app,
-        submittedAt: new Date(app.submittedAt),
-        updatedAt: new Date(app.updatedAt),
+        submittedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+        updatedAt: app.updatedAt ? new Date(app.updatedAt) : new Date(),
+        primaryAppointmentStartDate: app.primaryAppointmentStartDate ? new Date(app.primaryAppointmentStartDate) : null,
+        primaryAppointmentEndDate: app.primaryAppointmentEndDate ? new Date(app.primaryAppointmentEndDate) : null,
+        fisEntryDate: app.fisEntryDate ? new Date(app.fisEntryDate) : null,
         statusHistory: app.statusHistory?.map((item: any) => ({
           ...item,
-          timestamp: new Date(item.timestamp)
+          timestamp: item.timestamp ? new Date(item.timestamp) : new Date()
         })) || []
       }));
       setApplications(apps);

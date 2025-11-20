@@ -212,10 +212,10 @@ class Application {
           name: this.divisionChairName,
           email: this.divisionChairEmail
         } : null,
-        dean: {
+        dean: this.deanName ? {
           name: this.deanName,
           email: this.deanEmail
-        },
+        } : null,
         seniorAssociateDean: this.seniorAssociateDeanName ? {
           name: this.seniorAssociateDeanName,
           email: this.seniorAssociateDeanEmail
@@ -238,8 +238,8 @@ class Application {
       fisEntered: this.fisEntered,
       fisEntryDate: this.fisEntryDate,
       processingTimeWeeks: this.processingTimeWeeks,
-      primaryAppointmentStartDate: this.primaryAppointmentStartDate,
-      primaryAppointmentEndDate: this.primaryAppointmentEndDate,
+      primaryAppointmentStartDate: this.primaryAppointmentStartDate || null,
+      primaryAppointmentEndDate: this.primaryAppointmentEndDate || null,
       statusHistory: this.statusHistory || [],
       // Individual approver fields for admin interface
       departmentChairName: this.departmentChairName,

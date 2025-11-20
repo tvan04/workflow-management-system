@@ -79,6 +79,86 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
     return labels[status] || `Unknown: ${status}`;
   };
 
+  const getCurrentApprover = (application: Application): string | null => {
+    const { status } = application;
+
+    switch (status) {
+      case 'submitted':
+        return 'CCC Faculty';
+      
+      case 'ccc_review':
+        return 'CCC Faculty';
+      
+      case 'ccc_associate_dean_review':
+        return 'CCC Associate Dean';
+      
+      case 'awaiting_primary_approval':
+        // Determine the current approver based on who has already approved and who's next
+        // Check status history to see which approvers have completed their part
+        const approvedBy = application.statusHistory?.map(h => h.approver?.toLowerCase()) || [];
+        
+        // Create ordered list of potential approvers
+        const approverChain = [];
+        if (application.departmentChairName && application.departmentChairEmail) {
+          approverChain.push({
+            name: application.departmentChairName,
+            title: 'Department Chair',
+            email: application.departmentChairEmail
+          });
+        }
+        if (application.divisionChairName && application.divisionChairEmail) {
+          approverChain.push({
+            name: application.divisionChairName,
+            title: 'Division Chair', 
+            email: application.divisionChairEmail
+          });
+        }
+        if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail) {
+          approverChain.push({
+            name: application.seniorAssociateDeanName,
+            title: 'Associate Dean',
+            email: application.seniorAssociateDeanEmail
+          });
+        }
+        if (application.deanName && application.deanEmail) {
+          approverChain.push({
+            name: application.deanName,
+            title: 'Dean',
+            email: application.deanEmail
+          });
+        }
+        
+        // Find the first approver who hasn't approved yet
+        for (const approver of approverChain) {
+          const hasApproved = approvedBy.some(approved => 
+            approved && (
+              approved.includes(approver.name.toLowerCase()) ||
+              approved.includes(approver.email.toLowerCase()) ||
+              approved.includes(approver.title.toLowerCase())
+            )
+          );
+          if (!hasApproved) {
+            return approver.title;
+          }
+        }
+        
+        // If all have approved or none found, return the last in chain or generic
+        return approverChain.length > 0 
+          ? approverChain[approverChain.length - 1].title
+          : 'Primary Approver';
+      
+      case 'fis_entry_pending':
+        return 'CCC Faculty';
+      
+      case 'completed':
+      case 'rejected':
+        return null;
+      
+      default:
+        return 'Unknown';
+    }
+  };
+
   const daysSinceUpdate = Math.floor((new Date().getTime() - new Date(application.updatedAt).getTime()) / (1000 * 3600 * 24));
   const isStalled = daysSinceUpdate > 7 && !['completed', 'rejected'].includes(application.status);
 
@@ -104,7 +184,7 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-surface-900">
-        {application.currentApprover || 'CCC Staff'}
+        {getCurrentApprover(application) || 'CCC Staff'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-surface-600">
         {new Date(application.submittedAt).toLocaleDateString()}
