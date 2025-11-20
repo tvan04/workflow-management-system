@@ -52,7 +52,7 @@ class EmailReminderService {
     const query = `
       SELECT a.*
       FROM applications a
-      WHERE a.status IN ('ccc_review', 'ccc_associate_dean_review', 'awaiting_primary_approval')
+      WHERE a.status IN ('ccc_review', 'ccc_associate_dean_review', 'awaiting_primary_approval', 'fis_entry_pending')
       AND a.updated_at < ?
     `;
     
@@ -115,7 +115,7 @@ class EmailReminderService {
         return {
           recipient: 'ccc@vanderbilt.edu', // CCC staff email
           type: 'ccc_review_reminder',
-          recipientName: 'CCC Review Team',
+          recipientName: 'CCC Admin',
           actionRequired: 'review and approve this application'
         };
       
@@ -135,6 +135,14 @@ class EmailReminderService {
           type: 'primary_approval_reminder',
           recipientName: primaryApprover.name,
           actionRequired: 'provide your approval decision'
+        };
+      
+      case 'fis_entry_pending':
+        return {
+          recipient: 'ccc@vanderbilt.edu', // CCC staff email
+          type: 'fis_entry_reminder',
+          recipientName: 'CCC Admin',
+          actionRequired: 'complete the FIS entry process'
         };
       
       default:
@@ -162,10 +170,18 @@ class EmailReminderService {
       };
     }
 
+    // Check senior associate dean
+    if (application.seniorAssociateDeanEmail) {
+      return {
+        name: application.seniorAssociateDeanName || 'Senior Associate Dean',
+        email: application.seniorAssociateDeanEmail
+      };
+    }
+
     // Fall back to dean
     return {
       name: application.deanName || 'Dean',
-      email: application.deanEmail
+      email: application.deanEmail || 'dean@example.com' // Fallback email to prevent errors
     };
   }
 
@@ -232,7 +248,15 @@ class EmailReminderService {
    * Generate reminder email content
    */
   generateReminderEmailContent(application, reminderInfo, daysStuck) {
-    const applicationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/signature/${application.id}?approver=${encodeURIComponent(reminderInfo.recipient)}&token=reminder`;
+    // Use admin edit URL for CCC faculty statuses, signature URL for others
+    let applicationUrl;
+    if (application.status === 'ccc_review' || application.status === 'fis_entry_pending') {
+      // CCC faculty should go to admin edit page
+      applicationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/edit/${application.id}`;
+    } else {
+      // Other approvers go to signature page
+      applicationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/signature/${application.id}?approver=${encodeURIComponent(reminderInfo.recipient)}&token=reminder`;
+    }
 
     const text = `
 Dear ${reminderInfo.recipientName},
