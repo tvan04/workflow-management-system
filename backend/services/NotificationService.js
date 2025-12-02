@@ -180,45 +180,103 @@ class NotificationService {
 
   // Helper function to get approval hierarchy for an application
   getApprovalHierarchy(application) {
+    // Get college configuration to determine required approvers and their order
+    const collegeRequirements = this.getCollegeRequirements(application.facultyCollege);
+    const requiredApprovers = collegeRequirements.requiredApprovers || [];
+    
     const hierarchy = [];
     
-    // Department Chair comes first if exists
-    if (application.departmentChairName && application.departmentChairEmail) {
-      hierarchy.push({
-        role: 'department_chair',
-        name: application.departmentChairName,
-        email: application.departmentChairEmail
-      });
+    // Build hierarchy based on required approvers order
+    for (const approverType of requiredApprovers) {
+      switch (approverType) {
+        case 'departmentChair':
+          if (application.departmentChairName && application.departmentChairEmail) {
+            hierarchy.push({
+              role: 'department_chair',
+              name: application.departmentChairName,
+              email: application.departmentChairEmail
+            });
+          }
+          break;
+        
+        case 'associateDean':
+          if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail) {
+            hierarchy.push({
+              role: 'senior_associate_dean',
+              name: application.seniorAssociateDeanName,
+              email: application.seniorAssociateDeanEmail
+            });
+          }
+          break;
+        
+        case 'dean':
+          if (application.deanName && application.deanEmail) {
+            hierarchy.push({
+              role: 'dean',
+              name: application.deanName,
+              email: application.deanEmail
+            });
+          }
+          break;
+        
+        case 'viceDean':
+          if (application.deanName && application.deanEmail) {
+            hierarchy.push({
+              role: 'dean', // Vice Dean uses the same database fields as Dean
+              name: application.deanName,
+              email: application.deanEmail
+            });
+          }
+          break;
+      }
     }
     
-    // Division Chair comes first if exists (alternative to department chair)
-    if (application.divisionChairName && application.divisionChairEmail) {
-      hierarchy.push({
+    // Also add division chair if it exists (alternative to department chair)
+    if (application.divisionChairName && application.divisionChairEmail && !hierarchy.some(h => h.role === 'department_chair')) {
+      hierarchy.unshift({
         role: 'division_chair',
         name: application.divisionChairName,
         email: application.divisionChairEmail
       });
     }
     
-    // Senior Associate Dean comes after chairs but before dean
-    if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail) {
-      hierarchy.push({
-        role: 'senior_associate_dean',
-        name: application.seniorAssociateDeanName,
-        email: application.seniorAssociateDeanEmail
-      });
-    }
-    
-    // Dean comes last if exists
-    if (application.deanName && application.deanEmail) {
-      hierarchy.push({
-        role: 'dean',
-        name: application.deanName,
-        email: application.deanEmail
-      });
-    }
-    
     return hierarchy;
+  }
+
+  // Helper function to get college requirements (copied from applications.js)
+  getCollegeRequirements(collegeName) {
+    const colleges = {
+      'School of Engineering': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair', 'dean']
+      },
+      'College of Arts & Science': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair', 'associateDean']
+      },
+      'School of Medicine - Basic Sciences': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair']
+      },
+      'Owen Graduate School of Management': {
+        hasDepartments: false,
+        requiredApprovers: ['associateDean', 'dean']
+      },
+      'Blair School of Music': {
+        hasDepartments: false,
+        requiredApprovers: ['associateDean', 'dean']
+      },
+      'Peabody College': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair', 'associateDean']
+      },
+      'School of Nursing': {
+        hasDepartments: false,
+        requiredApprovers: ['dean']
+      }
+    };
+    
+    return colleges[collegeName] || { hasDepartments: true, requiredApprovers: ['departmentChair'] };
   }
 
   // Helper function to get completed approvals for an application

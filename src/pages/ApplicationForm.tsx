@@ -759,42 +759,6 @@ const ApplicationForm: React.FC = () => {
                         </div>
                       )}
 
-                      {(requiredApprovers.includes('dean') || requiredApprovers.includes('viceDean')) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              {requiredApprovers.includes('viceDean') ? 'Vice Dean Name *' : 'Dean Name *'}
-                            </label>
-                            <input
-                              type="text"
-                              value={formData.deanName}
-                              onChange={(e) => handleInputChange('deanName', e.target.value)}
-                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                                errors.deanName ? 'border-red-300' : 'border-gray-300'
-                              }`}
-                              placeholder="Dean Name"
-                            />
-                            {errors.deanName && <p className="mt-1 text-sm text-red-600">{errors.deanName}</p>}
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              {requiredApprovers.includes('viceDean') ? 'Vice Dean Email *' : 'Dean Email *'}
-                            </label>
-                            <input
-                              type="email"
-                              value={formData.deanEmail}
-                              onChange={(e) => handleInputChange('deanEmail', e.target.value)}
-                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
-                                errors.deanEmail ? 'border-red-300' : 'border-gray-300'
-                              }`}
-                              placeholder="Dean Email"
-                            />
-                            {errors.deanEmail && <p className="mt-1 text-sm text-red-600">{errors.deanEmail}</p>}
-                          </div>
-                        </div>
-                      )}
-
                       {requiredApprovers.includes('associateDean') && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
                           <div>
@@ -827,6 +791,42 @@ const ApplicationForm: React.FC = () => {
                               placeholder="Associate Dean Email"
                             />
                             {errors.seniorAssociateDeanEmail && <p className="mt-1 text-sm text-red-600">{errors.seniorAssociateDeanEmail}</p>}
+                          </div>
+                        </div>
+                      )}
+
+                      {(requiredApprovers.includes('dean') || requiredApprovers.includes('viceDean')) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {requiredApprovers.includes('viceDean') ? 'Vice Dean Name *' : 'Dean Name *'}
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.deanName}
+                              onChange={(e) => handleInputChange('deanName', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.deanName ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="Dean Name"
+                            />
+                            {errors.deanName && <p className="mt-1 text-sm text-red-600">{errors.deanName}</p>}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {requiredApprovers.includes('viceDean') ? 'Vice Dean Email *' : 'Dean Email *'}
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.deanEmail}
+                              onChange={(e) => handleInputChange('deanEmail', e.target.value)}
+                              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 ${
+                                errors.deanEmail ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="Dean Email"
+                            />
+                            {errors.deanEmail && <p className="mt-1 text-sm text-red-600">{errors.deanEmail}</p>}
                           </div>
                         </div>
                       )}

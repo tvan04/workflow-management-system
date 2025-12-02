@@ -96,6 +96,7 @@ export interface StatusHistoryItem {
   timestamp: Date;
   approver?: string;
   notes?: string;
+  approver_token?: string;
 }
 
 export interface DashboardMetrics {

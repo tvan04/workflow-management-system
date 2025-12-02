@@ -125,9 +125,10 @@ class Application {
   }
 
   async updateStatus(newStatus, approver = null, notes = null) {
+    const nextApprover = await this.getNextApprover(newStatus);
     await this.update({ 
       status: newStatus, 
-      currentApprover: this.getNextApprover(newStatus)
+      currentApprover: nextApprover
     });
     
     await this.addStatusHistory(newStatus, approver, notes);
@@ -142,7 +143,7 @@ class Application {
     await db.run(query, [this.id, status, approver, notes, approverToken]);
   }
 
-  getNextApprover(status) {
+  async getNextApprover(status) {
     switch (status) {
       case 'submitted':
         return 'CCC Faculty';
@@ -151,15 +152,23 @@ class Application {
       case 'ccc_associate_dean_review':
         return 'CCC Associate Dean';
       case 'awaiting_primary_approval':
-        if (this.hasDepartments && this.departmentChairName) {
-          return `${this.departmentChairName} (Department Chair)`;
-        }
-        // For schools without departments, check Associate Dean first, then Dean
-        if (this.seniorAssociateDeanName) {
-          return `${this.seniorAssociateDeanName} (Associate Dean)`;
-        }
-        if (this.deanName) {
-          return `${this.deanName} (Dean)`;
+        // Use the same hierarchy logic as notifications
+        const hierarchy = this.getApprovalHierarchy();
+        const completedApprovals = await this.getCompletedApprovals();
+        const completedRoles = completedApprovals.map(approval => approval.approver_role);
+        
+        // Find the first approver in hierarchy who hasn't completed their approval
+        for (const approver of hierarchy) {
+          if (!completedRoles.includes(approver.role)) {
+            const roleDisplayNames = {
+              'department_chair': 'Department Chair',
+              'division_chair': 'Division Chair',
+              'senior_associate_dean': 'Associate Dean',
+              'dean': 'Dean'
+            };
+            const roleDisplay = roleDisplayNames[approver.role] || approver.role;
+            return `${approver.name} (${roleDisplay})`;
+          }
         }
         return null;
       case 'fis_entry_pending':
@@ -169,6 +178,122 @@ class Application {
         return null;
       default:
         return null;
+    }
+  }
+
+  // Helper function to get approval hierarchy (same logic as in applications.js)
+  getApprovalHierarchy() {
+    // Get college configuration to determine required approvers and their order
+    const collegeRequirements = this.getCollegeRequirements();
+    const requiredApprovers = collegeRequirements.requiredApprovers || [];
+    
+    const hierarchy = [];
+    
+    // Build hierarchy based on required approvers order
+    for (const approverType of requiredApprovers) {
+      switch (approverType) {
+        case 'departmentChair':
+          if (this.departmentChairName && this.departmentChairEmail) {
+            hierarchy.push({
+              role: 'department_chair',
+              name: this.departmentChairName,
+              email: this.departmentChairEmail
+            });
+          }
+          break;
+        
+        case 'associateDean':
+          if (this.seniorAssociateDeanName && this.seniorAssociateDeanEmail) {
+            hierarchy.push({
+              role: 'senior_associate_dean',
+              name: this.seniorAssociateDeanName,
+              email: this.seniorAssociateDeanEmail
+            });
+          }
+          break;
+        
+        case 'dean':
+          if (this.deanName && this.deanEmail) {
+            hierarchy.push({
+              role: 'dean',
+              name: this.deanName,
+              email: this.deanEmail
+            });
+          }
+          break;
+        
+        case 'viceDean':
+          if (this.deanName && this.deanEmail) {
+            hierarchy.push({
+              role: 'dean', // Vice Dean uses the same database fields as Dean
+              name: this.deanName,
+              email: this.deanEmail
+            });
+          }
+          break;
+      }
+    }
+    
+    // Also add division chair if it exists (alternative to department chair)
+    if (this.divisionChairName && this.divisionChairEmail && !hierarchy.some(h => h.role === 'department_chair')) {
+      hierarchy.unshift({
+        role: 'division_chair',
+        name: this.divisionChairName,
+        email: this.divisionChairEmail
+      });
+    }
+    
+    return hierarchy;
+  }
+
+  // Helper function to get college requirements
+  getCollegeRequirements() {
+    const colleges = {
+      'School of Engineering': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair', 'dean']
+      },
+      'College of Arts & Science': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair', 'associateDean']
+      },
+      'School of Medicine - Basic Sciences': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair']
+      },
+      'Owen Graduate School of Management': {
+        hasDepartments: false,
+        requiredApprovers: ['associateDean', 'dean']
+      },
+      'Blair School of Music': {
+        hasDepartments: false,
+        requiredApprovers: ['associateDean', 'dean']
+      },
+      'Peabody College': {
+        hasDepartments: true,
+        requiredApprovers: ['departmentChair', 'associateDean']
+      },
+      'School of Nursing': {
+        hasDepartments: false,
+        requiredApprovers: ['dean']
+      }
+    };
+    
+    return colleges[this.facultyCollege] || { hasDepartments: true, requiredApprovers: ['departmentChair'] };
+  }
+
+  // Helper function to get completed approvals
+  async getCompletedApprovals() {
+    try {
+      const db = require('../config/database');
+      const approvals = await db.all(
+        'SELECT approver_role, approver_name, used_at FROM approval_tokens WHERE application_id = ? AND used = 1',
+        [this.id]
+      );
+      return approvals || [];
+    } catch (error) {
+      console.error('❌ Failed to get completed approvals:', error.message);
+      return [];
     }
   }
 

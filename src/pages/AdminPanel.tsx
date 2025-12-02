@@ -181,32 +181,115 @@ const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: strin
     entry.notes || entry.approver
   );
   
-  return meaningfulEntries.map((historyItem, index) => {
-    let displayStatus = historyItem.status;
+  // Create completed steps based on what status transitions occurred
+  const completedSteps: any[] = [];
+  
+  // Track all statuses that have been reached
+  const statusesReached = meaningfulEntries.map(entry => entry.status);
+  
+  // Always start with submitted if there are any history entries
+  if (meaningfulEntries.length > 0) {
+    const firstEntry = meaningfulEntries[0];
+    completedSteps.push({
+      ...firstEntry,
+      displayStatus: 'submitted'
+    });
+  }
+  
+  // Add CCC Review step if we've progressed beyond ccc_review status
+  if (statusesReached.includes('ccc_associate_dean_review') || 
+      statusesReached.includes('awaiting_primary_approval') || 
+      statusesReached.includes('fis_entry_pending') || 
+      statusesReached.includes('completed')) {
     
-    // Special case: first meaningful entry should show as "Submitted" 
-    // if it has submission-related notes
-    if (index === 0 && historyItem.notes && 
-        historyItem.notes.includes('submitted') && 
-        historyItem.status === 'ccc_review') {
-      displayStatus = 'submitted';
+    // Find the entry where CCC review was completed (when status changed to ccc_associate_dean_review)
+    const cccReviewEntry = meaningfulEntries.find(entry => entry.status === 'ccc_associate_dean_review');
+    if (cccReviewEntry) {
+      completedSteps.push({
+        ...cccReviewEntry,
+        displayStatus: 'ccc_review'
+      });
     }
-    // Second entry: if it's advancing from CCC Review, show as "CCC Review"
-    else if (index === 1 && historyItem.notes && 
-             historyItem.notes.includes('CCC Associate Dean Review') && 
-             historyItem.status === 'ccc_associate_dean_review') {
-      displayStatus = 'ccc_review';
-    }
-    // Convert "awaiting" statuses to completed statuses for history display
-    else if (displayStatus === 'awaiting_primary_approval') {
-      displayStatus = 'primary_approval';
-    }
+  }
+  
+  // Add CCC Associate Dean Review step if we've progressed beyond that status
+  if (statusesReached.includes('awaiting_primary_approval') || 
+      statusesReached.includes('fis_entry_pending') || 
+      statusesReached.includes('completed')) {
     
-    return {
-      ...historyItem,
-      displayStatus: displayStatus
-    };
+    // Find the entry where CCC Associate Dean review was completed
+    // Look for the last entry with ccc_associate_dean_review status that has meaningful content
+    const associateDeanEntries = meaningfulEntries.filter(entry => entry.status === 'ccc_associate_dean_review');
+    const associateDeanEntry = associateDeanEntries[associateDeanEntries.length - 1]; // Get the last one
+    if (associateDeanEntry) {
+      completedSteps.push({
+        ...associateDeanEntry,
+        displayStatus: 'ccc_associate_dean_review'
+      });
+    }
+  }
+  
+  // Add individual Primary Approval steps based on actual approver completions
+  // Look for entries during awaiting_primary_approval that have specific approver roles
+  meaningfulEntries.forEach(entry => {
+    if (entry.status === 'awaiting_primary_approval' && entry.approver && entry.approver_token) {
+      // Extract role from approver string (format: "Name (role)")
+      const roleMatch = entry.approver.match(/\(([^)]+)\)$/);
+      const role = roleMatch ? roleMatch[1] : '';
+      
+      // Map database roles to display labels
+      const roleDisplayMap: Record<string, string> = {
+        'department_chair': 'Department Chair Approval',
+        'division_chair': 'Division Chair Approval', 
+        'senior_associate_dean': 'Associate Dean Approval',
+        'dean': 'Dean Approval'
+      };
+      
+      const customLabel = roleDisplayMap[role] || entry.approver;
+      
+      completedSteps.push({
+        ...entry,
+        displayStatus: `primary_approval_${role}`,
+        customLabel: customLabel
+      });
+    }
   });
+
+  // Add FIS Entry step if the application has been completed (showing FIS Entry was done)
+  if (statusesReached.includes('completed')) {
+    // Find the entry where application moved to completed status (FIS Entry was completed)
+    const completedEntry = meaningfulEntries.find(entry => entry.status === 'completed');
+    if (completedEntry) {
+      completedSteps.push({
+        ...completedEntry,
+        displayStatus: 'fis_entry_completed',
+        approver: 'CCC Staff (FIS Entry)',
+        customLabel: 'FIS Entry'
+      });
+    }
+  }
+
+  // Always include the current status as a completed step if it's not already included
+  // This ensures the most recent step is shown in the status history
+  if (currentStatus !== 'submitted' && currentStatus !== 'completed') {
+    const currentStatusEntry = meaningfulEntries.find(entry => entry.status === currentStatus);
+    if (currentStatusEntry) {
+      // Check if we already have this status in completed steps
+      const alreadyIncluded = completedSteps.some(step => 
+        step.displayStatus === currentStatus ||
+        (step.displayStatus === 'fis_entry_completed' && currentStatus === 'fis_entry_pending')
+      );
+      
+      if (!alreadyIncluded) {
+        completedSteps.push({
+          ...currentStatusEntry,
+          displayStatus: currentStatus
+        });
+      }
+    }
+  }
+  
+  return completedSteps;
 };
 
 // Application details modal
@@ -256,39 +339,72 @@ const ApplicationDetailsModal: React.FC<{
         return 'CCC Associate Dean';
       
       case 'awaiting_primary_approval':
-        // Determine the current approver based on who has already approved and who's next
-        // Check status history to see which approvers have completed their part
+        // Use college-specific configuration to determine approver order
+        const getCollegeRequirements = (college: string) => {
+          const colleges: Record<string, { hasDepartments: boolean; requiredApprovers: string[] }> = {
+            'School of Engineering': {
+              hasDepartments: true,
+              requiredApprovers: ['departmentChair', 'dean']
+            },
+            'College of Arts & Science': {
+              hasDepartments: true,
+              requiredApprovers: ['departmentChair', 'associateDean']
+            },
+            'School of Medicine - Basic Sciences': {
+              hasDepartments: true,
+              requiredApprovers: ['departmentChair']
+            },
+            'Owen Graduate School of Management': {
+              hasDepartments: false,
+              requiredApprovers: ['associateDean', 'dean']
+            },
+            'Blair School of Music': {
+              hasDepartments: false,
+              requiredApprovers: ['associateDean', 'dean']
+            },
+            'School of Nursing': {
+              hasDepartments: false,
+              requiredApprovers: ['dean']
+            }
+          };
+          return colleges[college] || { hasDepartments: false, requiredApprovers: [] };
+        };
+
+        const collegeConfig = getCollegeRequirements(application.facultyMember.college);
         const approvedBy = application.statusHistory?.map(h => h.approver?.toLowerCase()) || [];
         
-        // Create ordered list of potential approvers
+        // Build approver chain based on college configuration order
         const approverChain = [];
-        if (application.departmentChairName && application.departmentChairEmail) {
-          approverChain.push({
-            name: application.departmentChairName,
-            title: 'Department Chair',
-            email: application.departmentChairEmail
-          });
-        }
-        if (application.divisionChairName && application.divisionChairEmail) {
-          approverChain.push({
-            name: application.divisionChairName,
-            title: 'Division Chair', 
-            email: application.divisionChairEmail
-          });
-        }
-        if (application.seniorAssociateDeanName && application.seniorAssociateDeanEmail) {
-          approverChain.push({
-            name: application.seniorAssociateDeanName,
-            title: 'Associate Dean',
-            email: application.seniorAssociateDeanEmail
-          });
-        }
-        if (application.deanName && application.deanEmail) {
-          approverChain.push({
-            name: application.deanName,
-            title: 'Dean',
-            email: application.deanEmail
-          });
+        for (const approverType of collegeConfig.requiredApprovers) {
+          switch (approverType) {
+            case 'departmentChair':
+              if (application.approvalChain?.departmentChair) {
+                approverChain.push({
+                  name: application.approvalChain.departmentChair.name,
+                  title: 'Department Chair',
+                  email: application.approvalChain.departmentChair.email
+                });
+              }
+              break;
+            case 'associateDean':
+              if (application.approvalChain?.seniorAssociateDean) {
+                approverChain.push({
+                  name: application.approvalChain.seniorAssociateDean.name,
+                  title: 'Associate Dean',
+                  email: application.approvalChain.seniorAssociateDean.email
+                });
+              }
+              break;
+            case 'dean':
+              if (application.approvalChain?.dean) {
+                approverChain.push({
+                  name: application.approvalChain.dean.name,
+                  title: 'Dean',
+                  email: application.approvalChain.dean.email
+                });
+              }
+              break;
+          }
         }
         
         // Find the first approver who hasn't approved yet
@@ -638,7 +754,7 @@ const ApplicationDetailsModal: React.FC<{
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-medium text-gray-900">
-                            {formatStatusName(history.displayStatus)}
+                            {history.customLabel || formatStatusName(history.displayStatus)}
                           </p>
                           {history.approver && (
                             <p className="text-sm text-gray-600">by {history.approver}</p>
@@ -649,8 +765,8 @@ const ApplicationDetailsModal: React.FC<{
                         </div>
                         <span className="text-xs text-gray-500">
                           {history.timestamp instanceof Date 
-                            ? history.timestamp.toLocaleString() 
-                            : new Date(history.timestamp).toLocaleString()}
+                            ? history.timestamp.toLocaleString('en-US', { timeZone: 'America/Chicago' })
+                            : new Date(history.timestamp).toLocaleString('en-US', { timeZone: 'America/Chicago' })}
                         </span>
                       </div>
                     </div>
@@ -780,8 +896,8 @@ const CurrentApplicationsTab: React.FC = () => {
           ...app,
           submittedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
           updatedAt: app.updatedAt ? new Date(app.updatedAt) : new Date(),
-          primaryAppointmentStartDate: app.primaryAppointmentStartDate ? new Date(app.primaryAppointmentStartDate) : null,
-          primaryAppointmentEndDate: app.primaryAppointmentEndDate ? new Date(app.primaryAppointmentEndDate) : null,
+          primaryAppointmentStartDate: app.primaryAppointmentStartDate,
+          primaryAppointmentEndDate: app.primaryAppointmentEndDate,
           fisEntryDate: app.fisEntryDate ? new Date(app.fisEntryDate) : null,
           statusHistory: app.statusHistory?.map((item: any) => ({
             ...item,
