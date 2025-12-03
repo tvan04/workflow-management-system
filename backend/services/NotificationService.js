@@ -54,7 +54,8 @@ class NotificationService {
           'CCC Associate Dean',
           applicantName,
           application.id,
-          primaryAppointment
+          primaryAppointment,
+          application.facultyCollege
         );
         console.log(`✅ CCC Associate Dean notification sent for ${application.id}`);
       }
@@ -76,7 +77,8 @@ class NotificationService {
             nextApprover.name,
             applicantName,
             application.id,
-            primaryAppointment
+            primaryAppointment,
+            application.facultyCollege
           );
           
           console.log(`✅ Sequential approval notification sent to ${nextApprover.name} for ${application.id}`);
@@ -273,6 +275,10 @@ class NotificationService {
       'School of Nursing': {
         hasDepartments: false,
         requiredApprovers: ['dean']
+      },
+      'Law School': {
+        hasDepartments: false,
+        requiredApprovers: ['viceDean']
       }
     };
     

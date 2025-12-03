@@ -276,6 +276,10 @@ class Application {
       'School of Nursing': {
         hasDepartments: false,
         requiredApprovers: ['dean']
+      },
+      'Law School': {
+        hasDepartments: false,
+        requiredApprovers: ['viceDean']
       }
     };
     

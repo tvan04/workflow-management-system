@@ -349,6 +349,10 @@ const ApplicationDetailsModal: React.FC<{
             'School of Nursing': {
               hasDepartments: false,
               requiredApprovers: ['dean']
+            },
+            'Law School': {
+              hasDepartments: false,
+              requiredApprovers: ['viceDean']
             }
           };
           return colleges[college] || { hasDepartments: false, requiredApprovers: [] };
@@ -384,6 +388,15 @@ const ApplicationDetailsModal: React.FC<{
                 approverChain.push({
                   name: application.approvalChain.dean.name,
                   title: 'Dean',
+                  email: application.approvalChain.dean.email
+                });
+              }
+              break;
+            case 'viceDean':
+              if (application.approvalChain?.dean) {
+                approverChain.push({
+                  name: application.approvalChain.dean.name,
+                  title: 'Vice Dean',
                   email: application.approvalChain.dean.email
                 });
               }

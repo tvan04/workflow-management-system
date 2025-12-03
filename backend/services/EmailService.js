@@ -16,7 +16,7 @@ class EmailService {
     }
   }
 
-  async sendApprovalNotification(approverEmail, approverRole, approverName, applicantName, applicationId, primaryAppointment) {
+  async sendApprovalNotification(approverEmail, approverRole, approverName, applicantName, applicationId, primaryAppointment, facultyCollege = null) {
     if (!this.apiKey) {
       throw new Error('Email API key not configured');
     }
@@ -42,7 +42,10 @@ class EmailService {
       const greeting = this.getApproverGreeting(approverRole, approverName);
       const roleDescription = this.getApproverRoleDescription(approverRole);
       
-      const subject = `Secondary Appointment Application - ${ApprovalTokenService.getApproverDisplayName(approverRole)} Approval Required`;
+      // Get display name considering college-specific titles (e.g., Vice Dean for Law School)
+      const displayName = this.getCollegeSpecificDisplayName(approverRole, facultyCollege);
+      
+      const subject = `Secondary Appointment Application - ${displayName} Approval Required`;
       const body = `
         <p>Dear ${greeting},</p>
         
@@ -57,7 +60,7 @@ class EmailService {
           <p style="margin: 0;"><a href="${approvalLink}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Review Application & Provide Decision</a></p>
         </div>
         
-        <p style="font-size: 12px; color: #666;">This link is personalized for your role as ${ApprovalTokenService.getApproverDisplayName(approverRole)} and will allow you to view the complete application and provide your digital signature for approval or denial.</p>
+        <p style="font-size: 12px; color: #666;">This link is personalized for your role as ${displayName} and will allow you to view the complete application and provide your digital signature for approval or denial.</p>
         
         <p>If you have any questions regarding this secondary appointment request, please contact the Faculty Affairs office at <a href="mailto:cccfacultyaffairs@vanderbilt.edu">cccfacultyaffairs@vanderbilt.edu</a>.</p>
         
@@ -148,12 +151,22 @@ class EmailService {
       case 'division_chair':
         return 'As the Division Chair, your approval is required for this faculty member from your division.';
       case 'dean':
-        return 'As the Dean, your approval is required for this faculty member from your school/college.';
+        return 'Your approval is required for this faculty member from your school/college.';
       case 'senior_associate_dean':
         return 'As the Associate Dean, your approval is required for this faculty member from your school/college.';
       default:
         return 'Your approval is required to proceed with this request.';
     }
+  }
+
+  getCollegeSpecificDisplayName(approverRole, facultyCollege = null) {
+    // For Law School dean role, use "Vice Dean" instead of "Dean"
+    if (approverRole === 'dean' && facultyCollege === 'Law School') {
+      return 'Vice Dean';
+    }
+    
+    // For all other cases, use the default display name
+    return ApprovalTokenService.getApproverDisplayName(approverRole);
   }
 
   async sendCCCFacultyNotification(applicantName, applicationId, primaryAppointment) {
