@@ -521,11 +521,21 @@ class EmailService {
     let endDateText = 'Please contact CCC Faculty Affairs for specific term details';
     if (primaryAppointmentEndDate) {
       try {
-        const endDate = new Date(primaryAppointmentEndDate);
+        // Parse date in a timezone-safe way to avoid day shifting
+        let endDate;
+        if (typeof primaryAppointmentEndDate === 'string' && primaryAppointmentEndDate.includes('-')) {
+          // For date strings like "YYYY-MM-DD", parse as local date to avoid timezone conversion
+          const [year, month, day] = primaryAppointmentEndDate.split('-').map(Number);
+          endDate = new Date(year, month - 1, day); // month is 0-indexed
+        } else {
+          endDate = new Date(primaryAppointmentEndDate);
+        }
+        
         endDateText = endDate.toLocaleDateString('en-US', { 
           year: 'numeric', 
           month: 'long', 
-          day: 'numeric' 
+          day: 'numeric',
+          timeZone: 'America/Chicago' // Ensure consistent timezone for display
         });
       } catch (error) {
         console.warn('Could not format end date:', primaryAppointmentEndDate);

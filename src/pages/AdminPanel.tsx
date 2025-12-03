@@ -184,8 +184,8 @@ const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: strin
   // Create completed steps based on what status transitions occurred
   const completedSteps: any[] = [];
   
-  // Track all statuses that have been reached
-  const statusesReached = meaningfulEntries.map(entry => entry.status);
+  // Track all statuses that have been reached (including current status)
+  const statusesReached = [...meaningfulEntries.map(entry => entry.status), currentStatus];
   
   // Always start with submitted if there are any history entries
   if (meaningfulEntries.length > 0) {
@@ -212,7 +212,8 @@ const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: strin
     }
   }
   
-  // Add CCC Associate Dean Review step if we've progressed beyond that status
+  // Add CCC Associate Dean Review step ONLY if we've progressed beyond that status
+  // (i.e., only if we've moved to awaiting_primary_approval or later)
   if (statusesReached.includes('awaiting_primary_approval') || 
       statusesReached.includes('fis_entry_pending') || 
       statusesReached.includes('completed')) {
@@ -269,25 +270,8 @@ const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: strin
     }
   }
 
-  // Always include the current status as a completed step if it's not already included
-  // This ensures the most recent step is shown in the status history
-  if (currentStatus !== 'submitted' && currentStatus !== 'completed') {
-    const currentStatusEntry = meaningfulEntries.find(entry => entry.status === currentStatus);
-    if (currentStatusEntry) {
-      // Check if we already have this status in completed steps
-      const alreadyIncluded = completedSteps.some(step => 
-        step.displayStatus === currentStatus ||
-        (step.displayStatus === 'fis_entry_completed' && currentStatus === 'fis_entry_pending')
-      );
-      
-      if (!alreadyIncluded) {
-        completedSteps.push({
-          ...currentStatusEntry,
-          displayStatus: currentStatus
-        });
-      }
-    }
-  }
+  // Don't add current status as completed - only show truly completed steps
+  // Current status represents work in progress, not completed work
   
   return completedSteps;
 };

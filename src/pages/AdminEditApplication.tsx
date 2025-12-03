@@ -630,18 +630,25 @@ const AdminEditApplication: React.FC = () => {
               </button>
             )}
             {application?.status === 'fis_entry_pending' && (
-              <button
-                onClick={handleSaveAndComplete}
-                disabled={saving}
-                className={`px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-white ${
-                  saving
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                <CheckCircle className="inline mr-1 h-4 w-4" />
-                {saving ? 'Saving...' : 'Save and Complete Application'}
-              </button>
+              <div>
+                <button
+                  onClick={handleSaveAndComplete}
+                  disabled={saving || !formData.fisEntered}
+                  className={`px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-white ${
+                    saving || !formData.fisEntered
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  <CheckCircle className="inline mr-1 h-4 w-4" />
+                  {saving ? 'Saving...' : 'Save and Complete Application'}
+                </button>
+                {!formData.fisEntered && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    FIS entry must be "Yes" before completing application
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
