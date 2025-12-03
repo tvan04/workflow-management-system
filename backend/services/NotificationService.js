@@ -224,7 +224,7 @@ class NotificationService {
         case 'viceDean':
           if (application.deanName && application.deanEmail) {
             hierarchy.push({
-              role: 'dean', // Vice Dean uses the same database fields as Dean
+              role: 'viceDean', // Use viceDean role for proper email handling
               name: application.deanName,
               email: application.deanEmail
             });
@@ -270,7 +270,7 @@ class NotificationService {
       },
       'Peabody College': {
         hasDepartments: true,
-        requiredApprovers: ['departmentChair', 'associateDean']
+        requiredApprovers: ['departmentChair', 'dean']
       },
       'School of Nursing': {
         hasDepartments: false,
@@ -279,7 +279,11 @@ class NotificationService {
       'Law School': {
         hasDepartments: false,
         requiredApprovers: ['viceDean']
-      }
+      },
+      'Divinity School': {
+        hasDepartments: false,
+        requiredApprovers: ['dean']
+      },
     };
     
     return colleges[collegeName] || { hasDepartments: true, requiredApprovers: ['departmentChair'] };

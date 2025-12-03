@@ -135,6 +135,8 @@ class EmailService {
         return approverName || 'Division Chair';
       case 'dean':
         return approverName || 'Dean';
+      case 'viceDean':
+        return approverName || 'Vice Dean';
       case 'senior_associate_dean':
         return approverName || 'Associate Dean';
       default:
@@ -151,7 +153,9 @@ class EmailService {
       case 'division_chair':
         return 'As the Division Chair, your approval is required for this faculty member from your division.';
       case 'dean':
-        return 'Your approval is required for this faculty member from your school/college.';
+        return 'As the Dean, your approval is required for this faculty member from your school/college.';
+      case 'viceDean':
+        return 'As the Vice Dean, your approval is required for this faculty member from your school/college.';
       case 'senior_associate_dean':
         return 'As the Associate Dean, your approval is required for this faculty member from your school/college.';
       default:

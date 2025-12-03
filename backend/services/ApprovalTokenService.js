@@ -157,6 +157,7 @@ class ApprovalTokenService {
       'department_chair': approverName ? `${approverName} (Department Chair)` : 'Department Chair',
       'division_chair': approverName ? `${approverName} (Division Chair)` : 'Division Chair', 
       'dean': approverName ? `${approverName} (Dean)` : 'Dean',
+      'viceDean': approverName ? `${approverName} (Vice Dean)` : 'Vice Dean',
       'senior_associate_dean': approverName ? `${approverName} (Associate Dean)` : 'Associate Dean'
     };
 

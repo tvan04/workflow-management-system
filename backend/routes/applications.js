@@ -60,7 +60,7 @@ const getCollegeRequirements = (collegeName) => {
     },
     'Peabody College': {
       hasDepartments: true,
-      requiredApprovers: ['departmentChair', 'associateDean']
+      requiredApprovers: ['departmentChair', 'dean']
     },
     'School of Nursing': {
       hasDepartments: false,
@@ -69,7 +69,11 @@ const getCollegeRequirements = (collegeName) => {
     'Law School': {
       hasDepartments: false,
       requiredApprovers: ['viceDean']
-    }
+    },
+    'Divinity School': {
+      hasDepartments: false,
+      requiredApprovers: ['dean']
+    },
   };
   
   return colleges[collegeName] || { hasDepartments: true, requiredApprovers: ['departmentChair'] };
@@ -118,12 +122,13 @@ const validateApplication = [
     return true;
   }),
   
-  // Dynamic dean validation
+  // Dynamic dean validation (also handles viceDean)
   body('deanName').custom((value, { req }) => {
     const collegeReqs = getCollegeRequirements(req.body.college);
-    if (collegeReqs.requiredApprovers.includes('dean')) {
+    if (collegeReqs.requiredApprovers.includes('dean') || collegeReqs.requiredApprovers.includes('viceDean')) {
       if (!value || value.trim().length === 0) {
-        throw new Error('Dean name is required for this college');
+        const roleTitle = collegeReqs.requiredApprovers.includes('viceDean') ? 'Vice dean' : 'Dean';
+        throw new Error(`${roleTitle} name is required for this college`);
       }
     }
     return true;
@@ -131,9 +136,10 @@ const validateApplication = [
   
   body('deanEmail').custom((value, { req }) => {
     const collegeReqs = getCollegeRequirements(req.body.college);
-    if (collegeReqs.requiredApprovers.includes('dean')) {
+    if (collegeReqs.requiredApprovers.includes('dean') || collegeReqs.requiredApprovers.includes('viceDean')) {
       if (!value || !FacultyMember.validateEmail(value)) {
-        throw new Error('Valid dean email is required for this college');
+        const roleTitle = collegeReqs.requiredApprovers.includes('viceDean') ? 'vice dean' : 'dean';
+        throw new Error(`Valid ${roleTitle} email is required for this college`);
       }
     }
     return true;
@@ -158,7 +164,10 @@ const validateApplication = [
       }
     }
     return true;
-  })
+  }),
+
+  // Note: Vice dean validation uses dean fields (deanName, deanEmail)
+  // This is handled by the existing dean validation above
 ];
 
 // GET /api/applications - Get all applications with optional filtering
@@ -1090,7 +1099,7 @@ function getApprovalHierarchy(application) {
       case 'viceDean':
         if (application.deanName && application.deanEmail) {
           hierarchy.push({
-            role: 'dean', // Vice Dean uses the same database fields as Dean
+            role: 'viceDean', // Use viceDean role for proper workflow handling
             name: application.deanName,
             email: application.deanEmail
           });
@@ -1154,6 +1163,7 @@ async function getNextApprovalStatus(application, currentApproverRole) {
     case 'division_chair':
     case 'senior_associate_dean':
     case 'dean':
+    case 'viceDean':
       // Check if there are more approvers in the sequence
       const remainingApprover = await getNextApproverInSequence(application);
       return remainingApprover ? 'awaiting_primary_approval' : 'fis_entry_pending';
