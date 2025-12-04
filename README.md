@@ -200,7 +200,7 @@ Different roles depending on college structure:
 - **Permissions**: Approve/deny applications from their department
 - **Priority**: First in primary approval chain
 
-#### Division Chair  
+#### Division Leader  
 - **When**: For colleges with division structure
 - **Permissions**: Approve/deny applications from their division
 - **Priority**: Alternative to Department Chair
@@ -213,7 +213,7 @@ Different roles depending on college structure:
 #### Senior Associate Dean
 - **When**: For colleges that use this role
 - **Permissions**: Approve/deny applications as intermediate step
-- **Priority**: Between Division Chair and Dean
+- **Priority**: Between Division Leader and Dean
 
 ## Workflow Process
 

@@ -102,14 +102,14 @@ const ApplicationRow: React.FC<ApplicationRowProps> = ({ application }) => {
         if (application.departmentChairName && application.departmentChairEmail) {
           approverChain.push({
             name: application.departmentChairName,
-            title: 'Department Chair',
+            title: application.facultyMember?.institution === 'vumc' ? 'Primary Chair' : 'Department Chair',
             email: application.departmentChairEmail
           });
         }
         if (application.divisionChairName && application.divisionChairEmail) {
           approverChain.push({
             name: application.divisionChairName,
-            title: 'Division Chair', 
+            title: 'Division Leader', 
             email: application.divisionChairEmail
           });
         }

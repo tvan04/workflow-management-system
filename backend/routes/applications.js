@@ -81,7 +81,15 @@ const validateApplication = [
   body('email').isEmail().withMessage('Valid email is required'),
   body('title').trim().notEmpty().withMessage('Title is required'),
   body('department').optional().trim(),
-  body('college').trim().notEmpty().withMessage('College is required'),
+  // College is only required for Vanderbilt, not VUMC
+  body('college').custom((value, { req }) => {
+    if (req.body.institution === 'vanderbilt') {
+      if (!value || value.trim().length === 0) {
+        throw new Error('College is required for Vanderbilt faculty');
+      }
+    }
+    return true;
+  }),
   body('institution').trim().notEmpty().withMessage('Institution is required'),
   body('appointmentType').isIn(['initial', 'secondary']).withMessage('Valid appointment type is required'),
   body('effectiveDate').optional({ values: 'falsy' }).isDate().withMessage('Valid effective date is required'),
@@ -97,29 +105,50 @@ const validateApplication = [
     return true;
   }),
   
-  // Dynamic validation based on college requirements
+  // Dynamic validation based on college requirements or VUMC institution
   body('departmentChairName').custom((value, { req }) => {
-    const collegeReqs = getCollegeRequirements(req.body.college);
-    if (collegeReqs.requiredApprovers.includes('departmentChair')) {
+    // For VUMC, department chair (primary chair) is always required
+    if (req.body.institution === 'vumc') {
       if (!value || value.trim().length === 0) {
-        throw new Error('Department chair name is required for this college');
+        throw new Error('Primary chair name is required for VUMC faculty');
+      }
+    } else {
+      // For Vanderbilt, check college requirements
+      const collegeReqs = getCollegeRequirements(req.body.college);
+      if (collegeReqs.requiredApprovers.includes('departmentChair')) {
+        if (!value || value.trim().length === 0) {
+          throw new Error('Department chair name is required for this college');
+        }
       }
     }
     return true;
   }),
   
   body('departmentChairEmail').custom((value, { req }) => {
-    const collegeReqs = getCollegeRequirements(req.body.college);
-    if (collegeReqs.requiredApprovers.includes('departmentChair')) {
+    // For VUMC, department chair (primary chair) email is always required
+    if (req.body.institution === 'vumc') {
       if (!value || !FacultyMember.validateEmail(value)) {
-        throw new Error('Valid department chair email is required for this college');
+        throw new Error('Valid primary chair email is required for VUMC faculty');
+      }
+    } else {
+      // For Vanderbilt, check college requirements
+      const collegeReqs = getCollegeRequirements(req.body.college);
+      if (collegeReqs.requiredApprovers.includes('departmentChair')) {
+        if (!value || !FacultyMember.validateEmail(value)) {
+          throw new Error('Valid department chair email is required for this college');
+        }
       }
     }
     return true;
   }),
   
-  // Dynamic dean validation
+  // Dynamic dean validation (not required for VUMC)
   body('deanName').custom((value, { req }) => {
+    // VUMC doesn't require dean, only primary chair
+    if (req.body.institution === 'vumc') {
+      return true;
+    }
+    // For Vanderbilt, check college requirements
     const collegeReqs = getCollegeRequirements(req.body.college);
     if (collegeReqs.requiredApprovers.includes('dean')) {
       if (!value || value.trim().length === 0) {
@@ -130,6 +159,11 @@ const validateApplication = [
   }),
   
   body('deanEmail').custom((value, { req }) => {
+    // VUMC doesn't require dean, only primary chair
+    if (req.body.institution === 'vumc') {
+      return true;
+    }
+    // For Vanderbilt, check college requirements
     const collegeReqs = getCollegeRequirements(req.body.college);
     if (collegeReqs.requiredApprovers.includes('dean')) {
       if (!value || !FacultyMember.validateEmail(value)) {
@@ -139,8 +173,13 @@ const validateApplication = [
     return true;
   }),
   
-  // Dynamic associate dean validation  
+  // Dynamic associate dean validation (not required for VUMC)
   body('seniorAssociateDeanName').custom((value, { req }) => {
+    // VUMC doesn't require associate dean, only primary chair
+    if (req.body.institution === 'vumc') {
+      return true;
+    }
+    // For Vanderbilt, check college requirements
     const collegeReqs = getCollegeRequirements(req.body.college);
     if (collegeReqs.requiredApprovers.includes('associateDean')) {
       if (!value || value.trim().length === 0) {
@@ -151,6 +190,11 @@ const validateApplication = [
   }),
   
   body('seniorAssociateDeanEmail').custom((value, { req }) => {
+    // VUMC doesn't require associate dean, only primary chair
+    if (req.body.institution === 'vumc') {
+      return true;
+    }
+    // For Vanderbilt, check college requirements
     const collegeReqs = getCollegeRequirements(req.body.college);
     if (collegeReqs.requiredApprovers.includes('associateDean')) {
       if (!value || !FacultyMember.validateEmail(value)) {
@@ -306,8 +350,8 @@ router.post('/', upload.single('cvFile'), validateApplication, async (req, res) 
       facultyEmail: req.body.email,
       facultyTitle: req.body.title,
       facultyDepartment: req.body.department,
-      facultyCollege: req.body.college,
-      facultyInstitution: FacultyMember.validateInstitution(req.body.email),
+      facultyCollege: req.body.college || (req.body.institution === 'vumc' ? 'VUMC' : ''),
+      facultyInstitution: req.body.institution,
       appointmentType: req.body.appointmentType,
       effectiveDate: null, // No longer collected
       duration: null, // No longer collected
@@ -446,7 +490,7 @@ router.put('/:id', [
   body('approvers.divisionChair.name').optional().trim(),
   body('approvers.divisionChair.email').optional().trim().custom((value) => {
     if (value && value.length > 0 && !value.includes('@')) {
-      throw new Error('Division Chair email must be valid if provided');
+      throw new Error('Division Leader email must be valid if provided');
     }
     return true;
   }),
@@ -620,7 +664,7 @@ router.put('/:id', [
         }
       }
       
-      // Division Chair
+      // Division Leader
       if (req.body.approvers.divisionChair) {
         if (req.body.approvers.divisionChair.name !== undefined) {
           approverUpdates.push('division_chair_name = ?');
@@ -1048,9 +1092,21 @@ router.post('/:id/resend-notification', async (req, res) => {
 
 // Helper function to get approval hierarchy for an application
 function getApprovalHierarchy(application) {
-  // Get college configuration to determine required approvers and their order
-  const collegeRequirements = getCollegeRequirements(application.facultyCollege);
-  const requiredApprovers = collegeRequirements.requiredApprovers || [];
+  let requiredApprovers = [];
+  
+  // For VUMC applications, use Division Leader first (if present), then Primary Chair
+  if (application.faculty_institution === 'vumc') {
+    // Check if Division Leader exists, add to hierarchy first if present
+    if (application.divisionChairName && application.divisionChairEmail) {
+      requiredApprovers.push('divisionChair');
+    }
+    // Always add Primary Chair (department chair) after Division Leader
+    requiredApprovers.push('departmentChair');
+  } else {
+    // For Vanderbilt applications, use college configuration
+    const collegeRequirements = getCollegeRequirements(application.facultyCollege);
+    requiredApprovers = collegeRequirements.requiredApprovers || [];
+  }
   
   const hierarchy = [];
   
@@ -1096,16 +1152,17 @@ function getApprovalHierarchy(application) {
           });
         }
         break;
+      
+      case 'divisionChair':
+        if (application.divisionChairName && application.divisionChairEmail) {
+          hierarchy.push({
+            role: 'division_chair',
+            name: application.divisionChairName,
+            email: application.divisionChairEmail
+          });
+        }
+        break;
     }
-  }
-  
-  // Also add division chair if it exists (alternative to department chair)
-  if (application.divisionChairName && application.divisionChairEmail && !hierarchy.some(h => h.role === 'department_chair')) {
-    hierarchy.unshift({
-      role: 'division_chair',
-      name: application.divisionChairName,
-      email: application.divisionChairEmail
-    });
   }
   
   return hierarchy;

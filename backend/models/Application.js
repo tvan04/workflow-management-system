@@ -162,7 +162,7 @@ class Application {
           if (!completedRoles.includes(approver.role)) {
             const roleDisplayNames = {
               'department_chair': 'Department Chair',
-              'division_chair': 'Division Chair',
+              'division_chair': 'Division Leader',
               'senior_associate_dean': 'Associate Dean',
               'dean': 'Dean'
             };
@@ -183,9 +183,21 @@ class Application {
 
   // Helper function to get approval hierarchy (same logic as in applications.js)
   getApprovalHierarchy() {
-    // Get college configuration to determine required approvers and their order
-    const collegeRequirements = this.getCollegeRequirements();
-    const requiredApprovers = collegeRequirements.requiredApprovers || [];
+    let requiredApprovers = [];
+    
+    // For VUMC applications, use Division Leader first (if present), then Primary Chair
+    if (this.facultyInstitution === 'vumc') {
+      // Check if Division Leader exists, add to hierarchy first if present
+      if (this.divisionChairName && this.divisionChairEmail) {
+        requiredApprovers.push('divisionChair');
+      }
+      // Always add Primary Chair (department chair) after Division Leader
+      requiredApprovers.push('departmentChair');
+    } else {
+      // For Vanderbilt applications, use college configuration
+      const collegeRequirements = this.getCollegeRequirements();
+      requiredApprovers = collegeRequirements.requiredApprovers || [];
+    }
     
     const hierarchy = [];
     
@@ -231,16 +243,17 @@ class Application {
             });
           }
           break;
+        
+        case 'divisionChair':
+          if (this.divisionChairName && this.divisionChairEmail) {
+            hierarchy.push({
+              role: 'division_chair',
+              name: this.divisionChairName,
+              email: this.divisionChairEmail
+            });
+          }
+          break;
       }
-    }
-    
-    // Also add division chair if it exists (alternative to department chair)
-    if (this.divisionChairName && this.divisionChairEmail && !hierarchy.some(h => h.role === 'department_chair')) {
-      hierarchy.unshift({
-        role: 'division_chair',
-        name: this.divisionChairName,
-        email: this.divisionChairEmail
-      });
     }
     
     return hierarchy;

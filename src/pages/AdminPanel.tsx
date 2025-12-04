@@ -173,7 +173,7 @@ const formatStatusName = (status: string): string => {
 };
 
 // Helper function to determine completed steps from status history  
-const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: string) => {
+const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: string, application?: any) => {
   if (!statusHistory || statusHistory.length === 0) return [];
   
   // Filter out entries with no meaningful content (no notes and no approver)
@@ -240,8 +240,8 @@ const getCompletedStepsFromHistory = (statusHistory: any[], currentStatus: strin
       
       // Map database roles to display labels
       const roleDisplayMap: Record<string, string> = {
-        'department_chair': 'Department Chair Approval',
-        'division_chair': 'Division Chair Approval', 
+        'department_chair': application?.facultyMember?.institution === 'vumc' ? 'Primary Chair Approval' : 'Department Chair Approval',
+        'division_chair': 'Division Leader Approval', 
         'senior_associate_dean': 'Associate Dean Approval',
         'dean': 'Dean Approval'
       };
@@ -369,7 +369,7 @@ const ApplicationDetailsModal: React.FC<{
               if (application.approvalChain?.departmentChair) {
                 approverChain.push({
                   name: application.approvalChain.departmentChair.name,
-                  title: 'Department Chair',
+                  title: application.facultyMember?.institution === 'vumc' ? 'Primary Chair' : 'Department Chair',
                   email: application.approvalChain.departmentChair.email
                 });
               }
@@ -743,7 +743,7 @@ const ApplicationDetailsModal: React.FC<{
             <h4 className="text-lg font-medium text-gray-900 mb-3">Status History</h4>
             <div className="space-y-3">
               {(() => {
-                const completedSteps = getCompletedStepsFromHistory(application.statusHistory, application.status);
+                const completedSteps = getCompletedStepsFromHistory(application.statusHistory, application.status, application);
                 
                 return completedSteps.length > 0 ? (
                   completedSteps.map((history, index) => (
