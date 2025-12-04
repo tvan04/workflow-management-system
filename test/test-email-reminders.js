@@ -4,8 +4,8 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, 'backend', '.env') });
 
-const EmailReminderService = require('./backend/services/EmailReminderService');
-const db = require('./backend/config/database');
+const EmailReminderService = require('../backend/services/EmailReminderService');
+const db = require('../backend/config/database');
 
 async function testEmailReminders() {
   console.log('=== Testing Email Reminder System ===');
@@ -47,7 +47,7 @@ async function testEmailReminders() {
       };
       
       // Create and save test application using the Application model
-      const Application = require('./backend/models/Application');
+      const Application = require('../backend/models/Application');
       const testApp = new Application({
         ...testApplicationData,
         status: 'ccc_review', // Status that qualifies for reminders

@@ -4,7 +4,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, 'backend', '.env') });
 
-const SchedulerService = require('./backend/services/SchedulerService');
+const SchedulerService = require('../backend/services/SchedulerService');
 
 async function testSchedulerReminders() {
   console.log('=== Testing Scheduler Email Reminder Trigger ===');

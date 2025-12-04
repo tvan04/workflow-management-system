@@ -4,8 +4,8 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, 'backend', '.env') });
 
-const db = require('./backend/config/database');
-const EmailReminderService = require('./backend/services/EmailReminderService');
+const db = require('../backend/config/database');
+const EmailReminderService = require('../backend/services/EmailReminderService');
 
 async function testCompleteSystem() {
   console.log('=== Complete Email Reminder System Test ===\n');
