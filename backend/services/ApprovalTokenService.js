@@ -151,11 +151,14 @@ class ApprovalTokenService {
   /**
    * Get the display name for an approver role
    */
-  getApproverDisplayName(approverRole, approverName = null) {
+  getApproverDisplayName(approverRole, approverName = null, facultyInstitution = null) {
     const roleNames = {
       'ccc_associate_dean': 'CCC Associate Dean',
-      'department_chair': approverName ? `${approverName} (Department Chair)` : 'Department Chair',
-      'division_chair': approverName ? `${approverName} (Division Chair)` : 'Division Chair', 
+      'department_chair': (() => {
+        const title = facultyInstitution === 'vumc' ? 'Primary Chair' : 'Department Chair';
+        return approverName ? `${approverName} (${title})` : title;
+      })(),
+      'division_chair': approverName ? `${approverName} (Division Leader)` : 'Division Leader', 
       'dean': approverName ? `${approverName} (Dean)` : 'Dean',
       'viceDean': approverName ? `${approverName} (Vice Dean)` : 'Vice Dean',
       'senior_associate_dean': approverName ? `${approverName} (Associate Dean)` : 'Associate Dean'

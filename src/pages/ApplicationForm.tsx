@@ -360,15 +360,29 @@ const ApplicationForm: React.FC = () => {
       formDataToSubmit.append('alignmentQuestion', formData.alignmentQuestion);
       formDataToSubmit.append('enhancementQuestion', formData.enhancementQuestion);
       
-      // Add approval chain fields
-      formDataToSubmit.append('departmentChairName', formData.departmentChairName);
-      formDataToSubmit.append('departmentChairEmail', formData.departmentChairEmail);
-      formDataToSubmit.append('divisionChairName', formData.divisionChairName);
-      formDataToSubmit.append('divisionChairEmail', formData.divisionChairEmail);
-      formDataToSubmit.append('deanName', formData.deanName);
-      formDataToSubmit.append('deanEmail', formData.deanEmail);
-      formDataToSubmit.append('seniorAssociateDeanName', formData.seniorAssociateDeanName);
-      formDataToSubmit.append('seniorAssociateDeanEmail', formData.seniorAssociateDeanEmail);
+      // Add approval chain fields - map VUMC fields to standard fields
+      if (formData.institution === 'vumc') {
+        // For VUMC, map primary chair to department chair fields
+        formDataToSubmit.append('departmentChairName', formData.primaryChairName);
+        formDataToSubmit.append('departmentChairEmail', formData.primaryChairEmail);
+        formDataToSubmit.append('divisionChairName', formData.divisionChairName);
+        formDataToSubmit.append('divisionChairEmail', formData.divisionChairEmail);
+        // Clear other fields for VUMC
+        formDataToSubmit.append('deanName', '');
+        formDataToSubmit.append('deanEmail', '');
+        formDataToSubmit.append('seniorAssociateDeanName', '');
+        formDataToSubmit.append('seniorAssociateDeanEmail', '');
+      } else {
+        // For Vanderbilt, use standard fields
+        formDataToSubmit.append('departmentChairName', formData.departmentChairName);
+        formDataToSubmit.append('departmentChairEmail', formData.departmentChairEmail);
+        formDataToSubmit.append('divisionChairName', formData.divisionChairName);
+        formDataToSubmit.append('divisionChairEmail', formData.divisionChairEmail);
+        formDataToSubmit.append('deanName', formData.deanName);
+        formDataToSubmit.append('deanEmail', formData.deanEmail);
+        formDataToSubmit.append('seniorAssociateDeanName', formData.seniorAssociateDeanName);
+        formDataToSubmit.append('seniorAssociateDeanEmail', formData.seniorAssociateDeanEmail);
+      }
       
       // Add college departments flag
       const selectedCollege = colleges.find(c => c.name === formData.college);

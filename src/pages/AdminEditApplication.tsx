@@ -49,7 +49,7 @@ const getApproversForApplication = (application: Application) => {
   // Check individual approver fields first (direct from API)
   if (application.departmentChairName || application.departmentChairEmail) {
     approvers.push({
-      role: 'Department Chair',
+      role: application.facultyMember?.institution === 'vumc' ? 'Primary Chair' : 'Department Chair',
       key: 'departmentChair',
       name: application.departmentChairName || '',
       email: application.departmentChairEmail || ''
@@ -58,7 +58,7 @@ const getApproversForApplication = (application: Application) => {
   
   if (application.divisionChairName || application.divisionChairEmail) {
     approvers.push({
-      role: 'Division Chair', 
+      role: 'Division Leader', 
       key: 'divisionChair',
       name: application.divisionChairName || '',
       email: application.divisionChairEmail || ''
@@ -89,7 +89,7 @@ const getApproversForApplication = (application: Application) => {
     
     if (chain.departmentChair && (chain.departmentChair.name || chain.departmentChair.email)) {
       approvers.push({
-        role: 'Department Chair',
+        role: application.facultyMember?.institution === 'vumc' ? 'Primary Chair' : 'Department Chair',
         key: 'departmentChair',
         name: chain.departmentChair.name || '',
         email: chain.departmentChair.email || ''
@@ -98,7 +98,7 @@ const getApproversForApplication = (application: Application) => {
     
     if (chain.divisionChair && (chain.divisionChair.name || chain.divisionChair.email)) {
       approvers.push({
-        role: 'Division Chair', 
+        role: 'Division Leader', 
         key: 'divisionChair',
         name: chain.divisionChair.name || '',
         email: chain.divisionChair.email || ''

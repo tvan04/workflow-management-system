@@ -272,18 +272,37 @@ const ApplicationStatus: React.FC = () => {
     // Add primary approval steps dynamically based on approval chain
     const primaryApprovers = [];
     
-    if (app.approvalChain.departmentChair) {
-      primaryApprovers.push({
-        title: 'Department Chair',
-        name: app.approvalChain.departmentChair.name
-      });
-    }
-    
-    if (app.approvalChain.divisionChair) {
-      primaryApprovers.push({
-        title: 'Division Chair',
-        name: app.approvalChain.divisionChair.name
-      });
+    // For VUMC applications, Division Leader comes first, then Primary Chair
+    if (app.facultyMember.institution === 'vumc') {
+      // Add Division Leader first if it exists
+      if (app.approvalChain.divisionChair) {
+        primaryApprovers.push({
+          title: 'Division Leader',
+          name: app.approvalChain.divisionChair.name
+        });
+      }
+      // Add Primary Chair second
+      if (app.approvalChain.departmentChair) {
+        primaryApprovers.push({
+          title: 'Primary Chair',
+          name: app.approvalChain.departmentChair.name
+        });
+      }
+    } else {
+      // For Vanderbilt applications, follow college-specific order
+      if (app.approvalChain.departmentChair) {
+        primaryApprovers.push({
+          title: 'Department Chair',
+          name: app.approvalChain.departmentChair.name
+        });
+      }
+      
+      if (app.approvalChain.divisionChair) {
+        primaryApprovers.push({
+          title: 'Division Leader',
+          name: app.approvalChain.divisionChair.name
+        });
+      }
     }
     
     if (app.approvalChain.seniorAssociateDean) {
@@ -515,13 +534,13 @@ const ApplicationStatus: React.FC = () => {
           <div className="space-y-2 text-sm">
             {application.approvalChain.departmentChair && (
               <div className="flex justify-between">
-                <span>Department Chair:</span>
+                <span>{application.facultyMember.institution === 'vumc' ? 'Primary Chair' : 'Department Chair'}:</span>
                 <span>{application.approvalChain.departmentChair.name}</span>
               </div>
             )}
             {application.approvalChain.divisionChair && (
               <div className="flex justify-between">
-                <span>Division Chair:</span>
+                <span>Division Leader:</span>
                 <span>{application.approvalChain.divisionChair.name}</span>
               </div>
             )}

@@ -16,7 +16,7 @@ class EmailService {
     }
   }
 
-  async sendApprovalNotification(approverEmail, approverRole, approverName, applicantName, applicationId, primaryAppointment, facultyCollege = null) {
+  async sendApprovalNotification(approverEmail, approverRole, approverName, applicantName, applicationId, primaryAppointment, facultyCollege = null, facultyInstitution = null) {
     if (!this.apiKey) {
       throw new Error('Email API key not configured');
     }
@@ -39,8 +39,8 @@ class EmailService {
       const approvalLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/signature/${applicationId}?approver=${encodeURIComponent(approverEmail)}&token=${approvalToken}`;
       
       // Get proper greeting based on role
-      const greeting = this.getApproverGreeting(approverRole, approverName);
-      const roleDescription = this.getApproverRoleDescription(approverRole);
+      const greeting = this.getApproverGreeting(approverRole, approverName, facultyInstitution);
+      const roleDescription = this.getApproverRoleDescription(approverRole, facultyInstitution);
       
       // Get display name considering college-specific titles (e.g., Vice Dean for Law School)
       const displayName = this.getCollegeSpecificDisplayName(approverRole, facultyCollege);
@@ -125,14 +125,15 @@ class EmailService {
     }
   }
 
-  getApproverGreeting(approverRole, approverName = null) {
+  getApproverGreeting(approverRole, approverName = null, facultyInstitution = null) {
     switch (approverRole) {
       case 'ccc_associate_dean':
         return 'CCC Associate Dean';
       case 'department_chair':
-        return approverName || 'Department Chair';
+        const chairTitle = facultyInstitution === 'vumc' ? 'Primary Chair' : 'Department Chair';
+        return approverName || chairTitle;
       case 'division_chair':
-        return approverName || 'Division Chair';
+        return approverName || 'Division Leader';
       case 'dean':
         return approverName || 'Dean';
       case 'viceDean':
@@ -144,14 +145,15 @@ class EmailService {
     }
   }
 
-  getApproverRoleDescription(approverRole) {
+  getApproverRoleDescription(approverRole, facultyInstitution = null) {
     switch (approverRole) {
       case 'ccc_associate_dean':
         return 'As the CCC Associate Dean, your review and approval is required to proceed with this request.';
       case 'department_chair':
-        return 'As the Department Chair, your approval is required for this faculty member from your department.';
+        const roleTitle = facultyInstitution === 'vumc' ? 'Primary Chair' : 'Department Chair';
+        return `As the ${roleTitle}, your approval is required for this faculty member from your ${facultyInstitution === 'vumc' ? 'area' : 'department'}.`;
       case 'division_chair':
-        return 'As the Division Chair, your approval is required for this faculty member from your division.';
+        return 'As the Division Leader, your approval is required for this faculty member from your division.';
       case 'dean':
         return 'As the Dean, your approval is required for this faculty member from your school/college.';
       case 'viceDean':

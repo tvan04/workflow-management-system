@@ -165,7 +165,7 @@ class EmailReminderService {
     // Check division chair
     if (application.divisionChairEmail) {
       return {
-        name: application.divisionChairName || 'Division Chair',
+        name: application.divisionChairName || 'Division Leader',
         email: application.divisionChairEmail
       };
     }
