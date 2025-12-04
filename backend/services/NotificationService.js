@@ -184,9 +184,21 @@ class NotificationService {
 
   // Helper function to get approval hierarchy for an application
   getApprovalHierarchy(application) {
-    // Get college configuration to determine required approvers and their order
-    const collegeRequirements = this.getCollegeRequirements(application.facultyCollege);
-    const requiredApprovers = collegeRequirements.requiredApprovers || [];
+    let requiredApprovers = [];
+    
+    // For VUMC applications, use Division Leader first (if present), then Primary Chair
+    if (application.facultyInstitution === 'vumc') {
+      // Check if Division Leader exists, add to hierarchy first if present
+      if (application.divisionChairName && application.divisionChairEmail) {
+        requiredApprovers.push('divisionChair');
+      }
+      // Always add Primary Chair (department chair) after Division Leader
+      requiredApprovers.push('departmentChair');
+    } else {
+      // For Vanderbilt applications, use college configuration
+      const collegeRequirements = this.getCollegeRequirements(application.facultyCollege);
+      requiredApprovers = collegeRequirements.requiredApprovers || [];
+    }
     
     const hierarchy = [];
     
@@ -232,16 +244,17 @@ class NotificationService {
             });
           }
           break;
+        
+        case 'divisionChair':
+          if (application.divisionChairName && application.divisionChairEmail) {
+            hierarchy.push({
+              role: 'division_chair',
+              name: application.divisionChairName,
+              email: application.divisionChairEmail
+            });
+          }
+          break;
       }
-    }
-    
-    // Also add division chair if it exists (alternative to department chair)
-    if (application.divisionChairName && application.divisionChairEmail && !hierarchy.some(h => h.role === 'department_chair')) {
-      hierarchy.unshift({
-        role: 'division_chair',
-        name: application.divisionChairName,
-        email: application.divisionChairEmail
-      });
     }
     
     return hierarchy;
